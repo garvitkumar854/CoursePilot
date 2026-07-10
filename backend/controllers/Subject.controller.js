@@ -1,7 +1,7 @@
 const Subject = require("../models/Subject.model");
 const Assignment = require("../models/Assignment.model");
 
-const getSubjects = async (req, res) => {
+const getSubjects = async (req, res, next) => {
   try {
     console.log("[DATABASE] MongoDB: Querying all subjects sorted by createdAt descending...");
     const subjects = await Subject.find().sort({
@@ -12,13 +12,11 @@ const getSubjects = async (req, res) => {
     res.status(200).json(subjects);
   } catch (error) {
     console.error("[DATABASE] MongoDB Error in getSubjects:", error);
-    res.status(500).json({
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-const getSubjectBySlug = async (req, res) => {
+const getSubjectBySlug = async (req, res, next) => {
   try {
     const { slug } = req.params;
     console.log(`[DATABASE] MongoDB: Querying subject by slug: "${slug}"...`);
@@ -49,14 +47,11 @@ const getSubjectBySlug = async (req, res) => {
     });
   } catch (error) {
     console.error("[DATABASE] MongoDB Error in getSubjectBySlug:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-const createSubject = async (req, res) => {
+const createSubject = async (req, res, next) => {
   try {
     const { name } = req.body;
     console.log(`[DATABASE] MongoDB: Creating a new subject with name: "${name}"...`);
@@ -84,13 +79,11 @@ const createSubject = async (req, res) => {
     res.status(201).json(subject);
   } catch (error) {
     console.error("[DATABASE] MongoDB Error in createSubject:", error);
-    res.status(500).json({
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-const updateSubject = async (req, res) => {
+const updateSubject = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
@@ -143,14 +136,11 @@ const updateSubject = async (req, res) => {
     });
   } catch (error) {
     console.error("[DATABASE] MongoDB Error in updateSubject:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-const deleteSubject = async (req, res) => {
+const deleteSubject = async (req, res, next) => {
   try {
     const { id } = req.params;
     console.log(`[DATABASE] MongoDB: Requested deletion of subject ID: "${id}"...`);
@@ -178,10 +168,7 @@ const deleteSubject = async (req, res) => {
     });
   } catch (error) {
     console.error("[DATABASE] MongoDB Error in deleteSubject:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 

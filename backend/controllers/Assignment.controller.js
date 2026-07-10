@@ -1,8 +1,7 @@
 const Assignment = require("../models/Assignment.model");
 const Subject = require("../models/Subject.model");
 
-// Create Assignment
-const createAssignment = async (req, res) => {
+const createAssignment = async (req, res, next) => {
   try {
     const {
       subjectId,
@@ -23,10 +22,9 @@ const createAssignment = async (req, res) => {
       });
     }
 
-    const assignmentCount =
-      await Assignment.countDocuments({
-        subjectId,
-      });
+    const assignmentCount = await Assignment.countDocuments({
+      subjectId,
+    });
 
     const assignment = await Assignment.create({
       subjectId,
@@ -40,7 +38,6 @@ const createAssignment = async (req, res) => {
 
     subject.assignmentCount += 1;
     subject.lastUpdated = new Date();
-
     await subject.save();
     console.log(`[DATABASE] MongoDB: Updated assignmentCount for subject "${subject.name}" to ${subject.assignmentCount}`);
 
@@ -50,16 +47,11 @@ const createAssignment = async (req, res) => {
     });
   } catch (error) {
     console.error("[DATABASE] MongoDB Error in createAssignment:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-
-// Get Assignments By Subject
-const getAssignmentsBySubject = async (req, res) => {
+const getAssignmentsBySubject = async (req, res, next) => {
   try {
     const { subjectId } = req.params;
     console.log(`[DATABASE] MongoDB: Fetching all active assignments for subject ID: "${subjectId}"...`);
@@ -79,15 +71,11 @@ const getAssignmentsBySubject = async (req, res) => {
     });
   } catch (error) {
     console.error("[DATABASE] MongoDB Error in getAssignmentsBySubject:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-// Get Single Assignment
-const getAssignmentById = async (req, res) => {
+const getAssignmentById = async (req, res, next) => {
   try {
     const { id } = req.params;
     console.log(`[DATABASE] MongoDB: Fetching assignment by ID: "${id}"...`);
@@ -101,27 +89,21 @@ const getAssignmentById = async (req, res) => {
         message: "Assignment not found",
       });
     }
-
     console.log(`[DATABASE] MongoDB: Found assignment "${assignment.title}".`);
+
     res.status(200).json({
       success: true,
       data: assignment,
     });
   } catch (error) {
     console.error("[DATABASE] MongoDB Error in getAssignmentById:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-
-// Update Assignment
-const updateAssignment = async (req, res) => {
+const updateAssignment = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const {
       assignmentNumber,
       title,
@@ -141,23 +123,13 @@ const updateAssignment = async (req, res) => {
       });
     }
 
-    assignment.assignmentNumber =
-      assignmentNumber ?? assignment.assignmentNumber;
-
-    assignment.title =
-      title ?? assignment.title;
-
-    assignment.description =
-      description ?? assignment.description;
-
-    assignment.assignedDate =
-      assignedDate ?? assignment.assignedDate;
-
-    assignment.order =
-      order ?? assignment.order;
+    assignment.assignmentNumber = assignmentNumber ?? assignment.assignmentNumber;
+    assignment.title = title ?? assignment.title;
+    assignment.description = description ?? assignment.description;
+    assignment.assignedDate = assignedDate ?? assignment.assignedDate;
+    assignment.order = order ?? assignment.order;
 
     const subject = await Subject.findById(assignment.subjectId);
-
     if (subject) {
       subject.lastUpdated = new Date();
       await subject.save();
@@ -174,16 +146,11 @@ const updateAssignment = async (req, res) => {
     });
   } catch (error) {
     console.error("[DATABASE] MongoDB Error in updateAssignment:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-
-// Delete Assignment
-const deleteAssignment = async (req, res) => {
+const deleteAssignment = async (req, res, next) => {
   try {
     const { id } = req.params;
     console.log(`[DATABASE] MongoDB: Request to delete assignment ID: "${id}"...`);
@@ -198,21 +165,14 @@ const deleteAssignment = async (req, res) => {
       });
     }
 
-    const subject = await Subject.findById(
-      assignment.subjectId
-    );
+    const subject = await Subject.findById(assignment.subjectId);
 
     await Assignment.findByIdAndDelete(id);
     console.log(`[DATABASE] MongoDB: Assignment ID "${id}" deleted successfully.`);
 
     if (subject) {
-      subject.assignmentCount = Math.max(
-        0,
-        subject.assignmentCount - 1
-      );
-
+      subject.assignmentCount = Math.max(0, subject.assignmentCount - 1);
       subject.lastUpdated = new Date();
-
       await subject.save();
       console.log(`[DATABASE] MongoDB: Updated assignmentCount for subject "${subject.name}" to ${subject.assignmentCount}`);
     }
@@ -223,10 +183,7 @@ const deleteAssignment = async (req, res) => {
     });
   } catch (error) {
     console.error("[DATABASE] MongoDB Error in deleteAssignment:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 

@@ -62,7 +62,7 @@ async function startServer() {
   // Database offline error fallback middleware
   app.use((err, req, res, next) => {
     if (
-      err.name === 'MongooseError' || 
+      err.name === 'MongooseError' || err.name === 'MongoNotConnectedError' || 
       err.name === 'MongoNetworkError' || 
       err.message.includes('buffering timed out') || 
       err.message.includes('not connected')
@@ -74,6 +74,12 @@ async function startServer() {
       return res.status(503).json({ error: 'Service temporarily unavailable (database offline)' });
     }
     next(err);
+  });
+
+  // Default error handler
+  app.use((err, req, res, next) => {
+    console.error("[SERVER] Unhandled error:", err);
+    res.status(500).json({ error: "Internal server error" });
   });
 
   // Vite or Static Assets serving
