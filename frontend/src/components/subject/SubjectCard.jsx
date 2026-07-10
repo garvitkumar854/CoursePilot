@@ -5,8 +5,11 @@ import {
   MoreVertical,
   PencilLine,
   Trash2,
+  Check,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import api from "../../api/axios";
+import { motion, AnimatePresence } from "motion/react";
 
 function timeAgo(dateString) {
   if (!dateString) return "Unknown";
@@ -23,6 +26,31 @@ function timeAgo(dateString) {
   return `${diffDay} day${diffDay > 1 ? "s" : ""} ago`;
 }
 
+const SUBJECT_COLORS = [
+  "#2563eb", // vibrant blue
+  "#8b5cf6", // premium purple
+  "#ec4899", // lively pink
+  "#10b981", // fresh emerald
+  "#f59e0b", // warm amber
+  "#3b82f6", // clear indigo-blue
+  "#14b8a6", // sleek teal
+  "#f97316", // bold orange
+  "#f43f5e", // elegant rose
+  "#06b6d4", // bright cyan
+  "#6366f1", // deep indigo
+  "#d946ef", // bright fuchsia
+];
+
+function getSubjectColor(idOrName) {
+  if (!idOrName) return SUBJECT_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < idOrName.length; i++) {
+    hash = idOrName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % SUBJECT_COLORS.length;
+  return SUBJECT_COLORS[index];
+}
+
 export default function SubjectCard({
   subject,
   index = 0,
@@ -33,6 +61,8 @@ export default function SubjectCard({
   const subjectNumber = `#${String(index + 1).padStart(2, "0")}`;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  
+  const cardColor = getSubjectColor(subject._id || subject.name);
 
   useEffect(() => {
     if (!menuOpen) {
@@ -60,62 +90,98 @@ export default function SubjectCard({
     };
   }, [menuOpen]);
 
+  const [copied, setCopied] = useState(false);
+
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(subject.slug);
+      const { data: res } = await api.get(`/assignments/subject/${subject._id}`);
+      const assignments = res.data || [];
+
+      let copyText = `${subject.name}\n`;
+      assignments.forEach((assignment, idx) => {
+        copyText += `${idx + 1}. ${assignment.title}\n`;
+        if (assignment.description) {
+          copyText += `   ${assignment.description}\n`;
+        }
+      });
+
+      await navigator.clipboard.writeText(copyText.trim());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Copy failed:", error);
     }
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-[30px] border border-black/6 bg-white/80 p-6 shadow-[0_14px_40px_rgba(17,24,39,0.07)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(17,24,39,0.12)]">
-      <div className="absolute inset-x-0 top-0 h-1 bg-[#2563eb]" />
+    <div className="group relative overflow-visible rounded-[30px] border border-black/6 bg-white/80 p-6 shadow-[0_14px_40px_rgba(17,24,39,0.07)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(17,24,39,0.12)]">
+      {/* Wrapper to clip the dynamic line to the container's rounded top corners */}
+      <div className="absolute inset-0 overflow-hidden rounded-[30px] pointer-events-none" style={{ transform: "translateZ(0)" }}>
+        {/* Base trace line */}
+        <div className="absolute inset-x-0 top-0 h-[4px] bg-slate-100/70" />
+        {/* Dynamic line expanding center to outside on hover */}
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 h-[4px] w-12 group-hover:w-full transition-all duration-500 ease-out"
+          style={{
+            backgroundColor: cardColor,
+          }}
+        />
+      </div>
 
       {isAdmin ? (
         <div className="absolute right-5 top-5" ref={menuRef}>
           <button
             type="button"
             onClick={() => setMenuOpen((value) => !value)}
-            className="rounded-full p-2 text-black/55 transition hover:bg-black/5 hover:text-[#2563eb]"
+            className="rounded-full p-2 text-black/55 transition hover:bg-black/5 cursor-pointer"
+            onMouseEnter={(e) => e.currentTarget.style.color = cardColor}
+            onMouseLeave={(e) => e.currentTarget.style.color = ""}
             aria-label="Open subject actions"
             aria-expanded={menuOpen}
           >
             <MoreVertical size={18} />
           </button>
 
-          {menuOpen ? (
-            <div className="absolute right-0 top-11 z-10 w-44 overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white p-2 shadow-[0_16px_50px_rgba(15,23,42,0.14)]">
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onEdit?.(subject);
-                }}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-[#0f172a] transition hover:bg-black/5"
+          <AnimatePresence>
+            {menuOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: -12, rotate: -2 }}
+                animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: -12, rotate: -2 }}
+                transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                className="absolute right-0 top-11 z-[99] w-44 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_16px_50px_rgba(15,23,42,0.14)] origin-top-right"
               >
-                <PencilLine size={16} />
-                Edit subject
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onEdit?.(subject);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 cursor-pointer"
+                >
+                  <PencilLine size={16} className="text-slate-500" />
+                  Edit subject
+                </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onDelete?.(subject);
-                }}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-[#b91c1c] transition hover:bg-red-50"
-              >
-                <Trash2 size={16} />
-                Delete subject
-              </button>
-            </div>
-          ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDelete?.(subject);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 cursor-pointer"
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       ) : null}
 
       <div className="pr-8">
-        <h3 className="text-[22px] font-bold tracking-tight text-[#0f172a]">
+        <h3 className="text-[22px] font-bold tracking-tight text-[#0f172a] capitalize">
           {subject.name}
         </h3>
 
@@ -125,8 +191,8 @@ export default function SubjectCard({
           </span>
 
           <span
-            className="rounded-full px-3 py-1 font-semibold text-[#b7791f]"
-            style={{ backgroundColor: "rgba(100, 116, 139, 0.12)" }}
+            className="rounded-full px-3 py-1 font-semibold"
+            style={{ backgroundColor: "rgba(100, 116, 139, 0.12)", color: cardColor }}
           >
             Total Assignments {subject.assignmentCount || 0}
           </span>
@@ -137,15 +203,20 @@ export default function SubjectCard({
         <button
           type="button"
           onClick={handleCopy}
-          className="rounded-xl p-2 text-black/55 transition hover:bg-black/5 hover:text-[#2563eb]"
+          className="rounded-xl p-2 text-black/55 transition hover:bg-black/5 cursor-pointer"
+          onMouseEnter={(e) => e.currentTarget.style.color = cardColor}
+          onMouseLeave={(e) => e.currentTarget.style.color = ""}
           aria-label="Copy subject index"
         >
-          <Copy size={20} />
+          {copied ? <Check size={20} className="text-green-600" /> : <Copy size={20} />}
         </button>
+
 
         <Link
           to={`/subject/${subject.slug}`}
-          className="group inline-flex items-center gap-2 text-[15px] font-semibold text-[#0f172a] transition hover:text-[#2563eb]"
+          className="group inline-flex items-center gap-2 text-[15px] font-semibold text-[#0f172a] transition-colors duration-200"
+          onMouseEnter={(e) => e.currentTarget.style.color = cardColor}
+          onMouseLeave={(e) => e.currentTarget.style.color = '#0f172a'}
         >
           View
           <ArrowRight

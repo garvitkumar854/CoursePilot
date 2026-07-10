@@ -42,22 +42,21 @@ export default function Navbar() {
 
         {isAuthenticated ? (
           <Button
+            variant="secondary"
             onClick={logout}
-            className="border border-[#e2e8f0] bg-white/80 text-[#0f172a] hover:bg-white"
+            className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-xs cursor-pointer"
           >
             <LogOut size={18} />
             Logout
           </Button>
         ) : (
-          <button
-            type="button"
+          <Button
             onClick={openLogin}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-[#f8fafc] transition hover:opacity-90"
-            style={{ backgroundColor: "#2563eb" }}
+            className="shadow-sm shadow-[#2563eb]/10"
           >
             <LogIn size={18} />
             Login
-          </button>
+          </Button>
         )}
       </div>
     </header>

@@ -7,7 +7,10 @@ import AssignmentList from "../components/assignment/AssignmentList";
 import SearchInput from "../components/ui/SearchInput";
 import Button from "../components/ui/Button";
 import ModalShell from "../components/ui/ModalShell";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 import useAuth from "../hooks/useAuth";
+import DatePicker from "../components/ui/DatePicker";
+
 
 export default function Subject() {
   const { slug } = useParams();
@@ -25,6 +28,11 @@ export default function Subject() {
   const [assignmentNumber, setAssignmentNumber] = useState(1);
   const [assignmentBusy, setAssignmentBusy] = useState(false);
   const [assignmentError, setAssignmentError] = useState("");
+
+  const [editingAssignment, setEditingAssignment] = useState(null);
+  const [assignmentToDelete, setAssignmentToDelete] = useState(null);
+  const [isOrderChanged, setIsOrderChanged] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -44,6 +52,7 @@ export default function Subject() {
 
       setSubject(res.data.subject);
       setAssignments(res.data.assignments);
+      setIsOrderChanged(false);
     } catch (error) {
       console.error(error);
       setSubject(null);
@@ -55,10 +64,21 @@ export default function Subject() {
   }
 
   function openAssignmentModal() {
+    setEditingAssignment(null);
     setAssignmentNumber(assignments.length + 1);
     setAssignmentTitle("");
     setAssignmentDescription("");
     setAssignmentDate(new Date().toISOString().slice(0, 10));
+    setAssignmentError("");
+    setAssignmentModalOpen(true);
+  }
+
+  function openEditAssignment(assignment) {
+    setEditingAssignment(assignment);
+    setAssignmentNumber(assignment.assignmentNumber);
+    setAssignmentTitle(assignment.title);
+    setAssignmentDescription(assignment.description || "");
+    setAssignmentDate(new Date(assignment.assignedDate).toISOString().slice(0, 10));
     setAssignmentError("");
     setAssignmentModalOpen(true);
   }
@@ -69,10 +89,11 @@ export default function Subject() {
     }
 
     setAssignmentModalOpen(false);
+    setEditingAssignment(null);
     setAssignmentError("");
   }
 
-  async function handleCreateAssignment(event) {
+  async function handleAssignmentSubmit(event) {
     event.preventDefault();
 
     if (!subject) {
@@ -83,24 +104,103 @@ export default function Subject() {
       setAssignmentBusy(true);
       setAssignmentError("");
 
-      await api.post("/assignments/create", {
-        subjectId: subject._id,
+      const payload = {
         assignmentNumber,
         title: assignmentTitle,
         description: assignmentDescription,
         assignedDate: assignmentDate,
-      });
+      };
+
+      if (editingAssignment) {
+        await api.put(`/assignments/${editingAssignment._id}`, payload);
+      } else {
+        await api.post("/assignments/create", {
+          subjectId: subject._id,
+          ...payload,
+        });
+      }
 
       await fetchSubject();
       closeAssignmentModal();
     } catch (err) {
       setAssignmentError(
-        err?.response?.data?.message || "Could not create assignment.",
+        err?.response?.data?.message || "Could not save assignment.",
       );
     } finally {
       setAssignmentBusy(false);
     }
   }
+
+  async function handleDeleteAssignment() {
+    if (!assignmentToDelete) {
+      return;
+    }
+
+    try {
+      setAssignmentBusy(true);
+      await api.delete(`/assignments/${assignmentToDelete._id}`);
+      await fetchSubject();
+      setAssignmentToDelete(null);
+    } catch (err) {
+      setAssignmentError(
+        err?.response?.data?.message || "Could not delete assignment.",
+      );
+      setAssignmentToDelete(null);
+    } finally {
+      setAssignmentBusy(false);
+    }
+  }
+
+  function handleMoveAssignment(assignmentId, direction) {
+    const idx = assignments.findIndex(a => a._id === assignmentId);
+    if (idx === -1) return;
+
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= assignments.length) return;
+
+    const reordered = [...assignments];
+    const [moved] = reordered.splice(idx, 1);
+    reordered.splice(targetIdx, 0, moved);
+
+    setAssignments(reordered);
+    setIsOrderChanged(true);
+  }
+
+  function handleReorderAssignments(draggedId, targetId) {
+    if (draggedId === targetId) return;
+
+    const draggedIdx = assignments.findIndex((a) => a._id === draggedId);
+    const targetIdx = assignments.findIndex((a) => a._id === targetId);
+
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    const reordered = [...assignments];
+    const [draggedAssignment] = reordered.splice(draggedIdx, 1);
+    reordered.splice(targetIdx, 0, draggedAssignment);
+
+    setAssignments(reordered);
+    setIsOrderChanged(true);
+  }
+
+  async function handleSaveOrder() {
+    try {
+      setSavingOrder(true);
+      await Promise.all(
+        assignments.map((assignment, index) =>
+          api.put(`/assignments/${assignment._id}`, {
+            order: index + 1,
+          })
+        )
+      );
+      setIsOrderChanged(false);
+      await fetchSubject();
+    } catch (err) {
+      console.error("Failed to save assignment order:", err);
+    } finally {
+      setSavingOrder(false);
+    }
+  }
+
 
   if (loading) {
     return (
@@ -172,12 +272,21 @@ export default function Subject() {
         <SubjectHeader subject={subject} />
 
         {isAuthenticated ? (
-          <div className="mt-4 flex justify-end sm:mt-5">
+          <div className="mt-3 flex justify-end gap-3 sm:mt-4">
+            {isOrderChanged && (
+              <Button
+                onClick={handleSaveOrder}
+                disabled={savingOrder}
+                className="bg-green-600 text-white hover:bg-green-700 hover:shadow-md transition-all font-semibold"
+              >
+                {savingOrder ? "Saving..." : "Save Order"}
+              </Button>
+            )}
             <Button onClick={openAssignmentModal}>Add Assignment</Button>
           </div>
         ) : null}
 
-        <div className="mt-4 sm:mt-5">
+        <div className="mt-3 sm:mt-4">
           <SearchInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -185,19 +294,31 @@ export default function Subject() {
           />
         </div>
 
-        <div className="mt-4 sm:mt-5">
-          <AssignmentList assignments={filteredAssignments} />
+        <div className="mt-3 sm:mt-4">
+          <AssignmentList
+            assignments={filteredAssignments}
+            onEdit={openEditAssignment}
+            onDelete={setAssignmentToDelete}
+            onMoveUp={(id) => handleMoveAssignment(id, "up")}
+            onMoveDown={(id) => handleMoveAssignment(id, "down")}
+            onReorder={handleReorderAssignments}
+          />
         </div>
+
       </main>
 
       {assignmentModalOpen ? (
         <ModalShell
-          title="Add assignment"
-          description={`Create a new assignment under ${subject?.name || "this subject"}.`}
+          title={editingAssignment ? "Edit assignment" : "Add assignment"}
+          description={
+            editingAssignment
+              ? `Edit the details of this assignment.`
+              : `Create a new assignment under ${subject?.name || "this subject"}.`
+          }
           onClose={closeAssignmentModal}
           maxWidth="max-w-2xl"
         >
-          <form className="space-y-4" onSubmit={handleCreateAssignment}>
+          <form className="space-y-4" onSubmit={handleAssignmentSubmit}>
             <div className="grid gap-4 md:grid-cols-[140px_1fr]">
               <input
                 type="number"
@@ -227,12 +348,16 @@ export default function Subject() {
               placeholder="Assignment description"
             />
 
-            <input
-              type="date"
-              value={assignmentDate}
-              onChange={(event) => setAssignmentDate(event.target.value)}
-              className="w-full rounded-2xl border border-[#dbe4ee] bg-[#f8fbff] px-4 py-3 text-[#0f172a] outline-none transition focus:border-[#2563eb] focus:bg-white focus:ring-4 focus:ring-[#2563eb]/10"
-            />
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#64748b]">
+                Assigned Date
+              </label>
+              <DatePicker
+                value={assignmentDate}
+                onChange={setAssignmentDate}
+              />
+            </div>
+
 
             {assignmentError ? (
               <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -250,11 +375,22 @@ export default function Subject() {
               </Button>
 
               <Button type="submit" disabled={assignmentBusy}>
-                Create assignment
+                {editingAssignment ? "Save changes" : "Create assignment"}
               </Button>
             </div>
           </form>
         </ModalShell>
+      ) : null}
+
+      {assignmentToDelete ? (
+        <ConfirmDialog
+          title="Delete assignment?"
+          description={`Are you sure you want to delete assignment "${assignmentToDelete.title}"? This action cannot be undone.`}
+          confirmLabel={assignmentBusy ? "Deleting..." : "Delete"}
+          destructive
+          onClose={() => setAssignmentToDelete(null)}
+          onConfirm={handleDeleteAssignment}
+        />
       ) : null}
     </>
   );

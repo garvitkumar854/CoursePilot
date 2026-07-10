@@ -10,7 +10,7 @@ export default function Button({
 
   const variants = {
     primary:
-      "bg-[color:var(--cp-fg)] text-[color:var(--cp-bg)] hover:opacity-95 hover:shadow-lg",
+      "bg-[#2563eb] text-white hover:bg-[#1d4ed8] hover:opacity-95 hover:shadow-lg cursor-pointer",
 
     secondary:
       "border border-black/8 bg-white/80 text-[color:var(--cp-fg)] hover:bg-white",

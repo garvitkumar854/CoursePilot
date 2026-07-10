@@ -1,6 +1,6 @@
 import AssignmentGroup from "./AssignmentGroup";
 
-export default function AssignmentList({ assignments }) {
+export default function AssignmentList({ assignments, onEdit, onDelete, onMoveUp, onMoveDown, onReorder }) {
   const groupedAssignments = assignments.reduce((groups, assignment) => {
     const dateKey = new Date(assignment.assignedDate)
       .toISOString()
@@ -41,7 +41,7 @@ export default function AssignmentList({ assignments }) {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-5">
+    <div className="space-y-3 sm:space-y-4">
       {Object.entries(groupedAssignments)
         .sort(([a], [b]) => b.localeCompare(a))
         .map(([date, group]) => (
@@ -49,6 +49,12 @@ export default function AssignmentList({ assignments }) {
             key={date}
             date={group.label}
             assignments={group.items}
+            allAssignments={assignments}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onMoveUp={onMoveUp}
+            onMoveDown={onMoveDown}
+            onReorder={onReorder}
           />
         ))}
     </div>

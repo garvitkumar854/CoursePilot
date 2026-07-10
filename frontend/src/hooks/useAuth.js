@@ -10,27 +10,45 @@ function readToken() {
     return window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
 }
 
+let globalToken = readToken();
+const listeners = new Set();
+
+const updateListeners = () => {
+    listeners.forEach((listener) => listener(globalToken));
+};
+
 export default function useAuth() {
-    const [token, setToken] = useState(readToken());
+    const [token, setToken] = useState(globalToken);
 
     useEffect(() => {
+        listeners.add(setToken);
+
         const handleStorage = () => {
-            setToken(readToken());
+            const nextToken = readToken();
+            if (nextToken !== globalToken) {
+                globalToken = nextToken;
+                updateListeners();
+            }
         };
 
         window.addEventListener("storage", handleStorage);
 
-        return () => window.removeEventListener("storage", handleStorage);
+        return () => {
+            listeners.delete(setToken);
+            window.removeEventListener("storage", handleStorage);
+        };
     }, []);
 
     const login = (nextToken) => {
         window.localStorage.setItem(AUTH_TOKEN_KEY, nextToken);
-        setToken(nextToken);
+        globalToken = nextToken;
+        updateListeners();
     };
 
     const logout = () => {
         window.localStorage.removeItem(AUTH_TOKEN_KEY);
-        setToken("");
+        globalToken = "";
+        updateListeners();
     };
 
     return {
@@ -40,3 +58,4 @@ export default function useAuth() {
         logout,
     };
 }
+

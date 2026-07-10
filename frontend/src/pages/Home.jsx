@@ -132,7 +132,7 @@ export default function Home() {
 
         <section
           id="subjects"
-          className="mt-10 rounded-4xl border border-black/6 bg-white/80 p-6 shadow-[0_20px_60px_rgba(17,24,39,0.06)] backdrop-blur-xl md:p-8"
+          className="mt-6 rounded-4xl border border-black/6 bg-white/80 p-6 shadow-[0_20px_60px_rgba(17,24,39,0.06)] backdrop-blur-xl md:p-8"
         >
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -143,7 +143,7 @@ export default function Home() {
 
             <div className="flex items-center gap-3">
               <p className="text-sm text-black/50">
-                {subjects.length} subject{subjects.length === 1 ? "" : "s"}
+                {subjects.length} Subject{subjects.length === 1 ? "" : "s"}
               </p>
 
               {isAuthenticated ? (

@@ -5,13 +5,16 @@ const User = require("../models/User.model");
 
 const login = async (req, res) => {
   const { email, password } = req.body;
+  const normalizedEmail = String(email || "").toLowerCase().trim();
+  console.log(`[AUTH] Admin login attempt for email: "${normalizedEmail}"`);
 
   const user = await User.findOne({
-    email: String(email || "").toLowerCase().trim(),
+    email: normalizedEmail,
     role: "admin",
   });
 
   if (!user) {
+    console.warn(`[AUTH] Login failed: No admin user found for email: "${normalizedEmail}"`);
     return res.status(401).json({
       success: false,
       message: "Invalid credentials",
@@ -21,12 +24,14 @@ const login = async (req, res) => {
   const passwordMatches = await bcrypt.compare(password || "", user.password);
 
   if (!passwordMatches) {
+    console.warn(`[AUTH] Login failed: Incorrect password for admin: "${normalizedEmail}"`);
     return res.status(401).json({
       success: false,
       message: "Invalid credentials",
     });
   }
 
+  console.log(`[AUTH] Login successful: Signing JWT token for "${normalizedEmail}"`);
   const token = jwt.sign(
     {
       role: "admin",
