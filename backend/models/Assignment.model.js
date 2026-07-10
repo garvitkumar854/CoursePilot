@@ -7,38 +7,36 @@ const assignmentSchema = new mongoose.Schema(
       ref: "Subject",
       required: true,
     },
-
     assignmentNumber: {
       type: Number,
       required: true,
     },
-
     title: {
       type: String,
       required: true,
       trim: true,
     },
-
     description: {
       type: String,
       default: "",
       trim: true,
     },
-
     assignedDate: {
       type: Date,
       required: true,
     },
-
     order: {
       type: Number,
       default: 0,
     },
-
     isActive: {
       type: Boolean,
       default: true,
     },
+    updatedBy: {
+      type: String,
+      default: "",
+    }
   },
   {
     timestamps: true,

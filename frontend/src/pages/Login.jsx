@@ -1,48 +1,34 @@
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, X } from "lucide-react";
-
+import { motion, AnimatePresence } from "motion/react";
 import api from "../api/axios";
 import Button from "../components/ui/Button";
 import useAuth from "../hooks/useAuth";
 
 export default function Login({ open = false, onClose }) {
   const { login } = useAuth();
-
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
-
+    if (!open) return;
     const handleEscape = (event) => {
-      if (event.key === "Escape") {
-        onClose?.();
-      }
+      if (event.key === "Escape") onClose?.();
     };
-
     window.addEventListener("keydown", handleEscape);
-
     return () => window.removeEventListener("keydown", handleEscape);
   }, [open, onClose]);
 
-  if (!open) {
-    return null;
-  }
-
   async function handleSubmit(event) {
     event.preventDefault();
-
     try {
       setLoading(true);
       setError("");
-
       const { data } = await api.post("/auth/login", {
-        email: email.trim(),
+        username: username.trim(),
         password,
       });
 
@@ -52,7 +38,7 @@ export default function Login({ open = false, onClose }) {
       }
     } catch (error) {
       if (error?.response?.status === 401) {
-        setError("Invalid credentials. Please check your email and password.");
+        setError("Invalid credentials. Please check your username and password.");
       } else {
         setError("Login failed. Please try again.");
       }
@@ -62,93 +48,103 @@ export default function Login({ open = false, onClose }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-60 flex items-center justify-center px-6 backdrop-blur-xl"
-      style={{ backgroundColor: "rgba(23, 32, 51, 0.45)" }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-lg rounded-[34px] border border-black/6 bg-white/90 p-8 shadow-[0_30px_90px_rgba(17,24,39,0.18)]"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#64748b]">
-              Admin access
-            </p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#0f172a]">
-              Sign in to manage the app.
-            </h1>
-          </div>
-
-          <button
-            type="button"
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={onClose}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#64748b] transition hover:bg-black/5 hover:text-[#0f172a]"
-            aria-label="Close login dialog"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
+            className="relative w-full max-w-lg rounded-[32px] border border-white/20 bg-white p-8 shadow-2xl md:p-10"
+            onClick={(event) => event.stopPropagation()}
           >
-            <X size={18} />
-          </button>
-        </div>
-
-        <p className="mt-4 text-sm leading-6 text-[#64748b]">
-          Sign in with your admin credentials to add subjects and assignments
-          from the dashboard.
-        </p>
-
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-[#64748b]">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-full border border-[#e2e8f0] bg-white px-4 py-3 outline-none transition focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/10"
-              placeholder="admin@example.com"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-[#64748b]">
-              Password
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-full border border-[#e2e8f0] bg-white px-4 py-3 pr-12 outline-none transition focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/10"
-                placeholder="Enter your admin password"
-              />
-
+            <div className="flex items-start justify-between gap-4 mb-6">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-2">
+                  Admin Access
+                </p>
+                <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
+                  Welcome back
+                </h2>
+                <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">
+                  Sign in with your admin credentials to manage subjects and assignments.
+                </p>
+              </div>
               <button
                 type="button"
-                onClick={() => setShowPassword((current) => !current)}
-                className="absolute right-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-[#64748b] transition hover:bg-black/5 hover:text-[#0f172a]"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                onClick={onClose}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900 cursor-pointer"
+                aria-label="Close login dialog"
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                <X size={20} />
               </button>
             </div>
-          </div>
 
-          {error ? (
-            <div className="rounded-2xl border border-[#2563eb]/15 bg-[#2563eb]/8 px-4 py-3 text-sm text-[#0f172a]">
-              {error}
-            </div>
-          ) : null}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium placeholder:text-slate-400"
+                  placeholder="admin_username"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium placeholder:text-slate-400"
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
 
-          <Button
-            type="submit"
-            className="w-full bg-[#2563eb] text-[#f8fafc] hover:bg-[#1d4ed8]"
-            disabled={loading}
-          >
-            {loading ? "Signing in..." : "Sign in"}
-          </Button>
-        </form>
-      </div>
-    </div>
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600"
+                >
+                  {error}
+                </motion.div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full mt-2"
+                disabled={loading}
+              >
+                {loading ? "Signing in..." : "Sign in"}
+              </Button>
+            </form>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

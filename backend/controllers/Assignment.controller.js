@@ -33,6 +33,7 @@ const createAssignment = async (req, res, next) => {
       description,
       assignedDate,
       order: assignmentCount + 1,
+      updatedBy: req.user ? req.user.username : "",
     });
     console.log(`[DATABASE] MongoDB: Assignment created successfully. ID: ${assignment._id}, Order: ${assignment.order}`);
 
@@ -128,6 +129,7 @@ const updateAssignment = async (req, res, next) => {
     assignment.description = description ?? assignment.description;
     assignment.assignedDate = assignedDate ?? assignment.assignedDate;
     assignment.order = order ?? assignment.order;
+    assignment.updatedBy = req.user ? req.user.username : assignment.updatedBy;
 
     const subject = await Subject.findById(assignment.subjectId);
     if (subject) {

@@ -228,7 +228,7 @@ export default function AssignmentItem({
             </div>
             <div>
               <span className="font-semibold text-[#64748b] block mb-1">Updated by</span>
-              <p className="bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100 font-medium text-blue-600">Admin</p>
+              <p className="bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100 font-medium text-blue-600">{assignment.updatedBy || "Unknown"}</p>
             </div>
             <div className="flex justify-end pt-2">
               <button

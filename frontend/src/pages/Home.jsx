@@ -1,20 +1,20 @@
-import { useEffect, useState } from "react";
-
+import { useState, useEffect } from "react";
+import useSWR from "swr";
 import api from "../api/axios";
+import { fetcher } from "../utils/fetcher";
 import Hero from "../components/layout/Hero";
 import SubjectCard from "../components/subject/SubjectCard";
-import SearchInput from "../components/ui/SearchInput";
 import Button from "../components/ui/Button";
 import ModalShell from "../components/ui/ModalShell";
+import { AnimatePresence } from "motion/react";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import useAuth from "../hooks/useAuth";
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
-  const [subjects, setSubjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  
+  // Modals state
   const [subjectModalOpen, setSubjectModalOpen] = useState(false);
   const [subjectName, setSubjectName] = useState("");
   const [editingSubject, setEditingSubject] = useState(null);
@@ -22,28 +22,14 @@ export default function Home() {
   const [subjectBusy, setSubjectBusy] = useState(false);
   const [subjectFormError, setSubjectFormError] = useState("");
 
-  useEffect(() => {
-    fetchSubjects();
-  }, []);
+  const { data: subjects = [], error: swrError, isLoading: loading, mutate } = useSWR("/subjects", fetcher);
+  const error = swrError ? "We could not load subjects right now." : "";
 
   useEffect(() => {
     if (!subjectModalOpen) {
       setSubjectFormError("");
     }
   }, [subjectModalOpen]);
-
-  async function fetchSubjects() {
-    try {
-      setError("");
-      const res = await api.get("/subjects");
-      setSubjects(res.data);
-    } catch (err) {
-      console.error(err);
-      setError("We could not load subjects right now.");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   function openCreateSubject() {
     setEditingSubject(null);
@@ -63,7 +49,6 @@ export default function Home() {
     if (subjectBusy) {
       return;
     }
-
     setSubjectModalOpen(false);
     setEditingSubject(null);
     setSubjectName("");
@@ -72,24 +57,22 @@ export default function Home() {
 
   async function handleSubjectSubmit(event) {
     event.preventDefault();
-
     try {
       setSubjectBusy(true);
       setSubjectFormError("");
-
       const payload = { name: subjectName };
-
+      
       if (editingSubject) {
         await api.put(`/subjects/${editingSubject._id}`, payload);
       } else {
         await api.post("/subjects/create", payload);
       }
-
-      await fetchSubjects();
+      
+      await mutate();
       closeSubjectModal();
     } catch (err) {
       setSubjectFormError(
-        err?.response?.data?.message || "Could not save subject.",
+        err?.response?.data?.message || "Could not save subject."
       );
     } finally {
       setSubjectBusy(false);
@@ -104,15 +87,14 @@ export default function Home() {
     if (!subjectToDelete) {
       return;
     }
-
     try {
       setSubjectBusy(true);
       await api.delete(`/subjects/${subjectToDelete._id}`);
-      await fetchSubjects();
+      await mutate();
       setSubjectToDelete(null);
     } catch (err) {
       setSubjectFormError(
-        err?.response?.data?.message || "Could not delete subject.",
+        err?.response?.data?.message || "Could not delete subject."
       );
       setSubjectToDelete(null);
     } finally {
@@ -128,7 +110,7 @@ export default function Home() {
   return (
     <>
       <main className="mx-auto max-w-7xl px-6 py-8">
-        <Hero />
+        <Hero search={search} setSearch={setSearch} />
 
         <section
           id="subjects"
@@ -140,23 +122,17 @@ export default function Home() {
                 Subjects
               </p>
             </div>
-
             <div className="flex items-center gap-3">
               <p className="text-sm text-black/50">
                 {subjects.length} Subject{subjects.length === 1 ? "" : "s"}
               </p>
-
               {isAuthenticated ? (
                 <Button onClick={openCreateSubject}>Add Subject</Button>
               ) : null}
+      
+      
             </div>
           </div>
-
-          <SearchInput
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by subject name or slug"
-          />
 
           {error ? (
             <div className="rounded-[28px] border border-dashed border-black/10 bg-black/2 p-10 text-center text-black/60">
@@ -204,15 +180,15 @@ export default function Home() {
               value={subjectName}
               onChange={(event) => setSubjectName(event.target.value)}
               placeholder="Subject name"
-              className="w-full rounded-2xl border border-[#dbe4ee] bg-[#f8fbff] px-4 py-3 text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:bg-white focus:ring-4 focus:ring-[#2563eb]/10"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium"
             />
-
             {subjectFormError ? (
               <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {subjectFormError}
               </p>
             ) : null}
-
+      
+      
             <div className="flex flex-wrap justify-end gap-3">
               <Button
                 type="button"
@@ -221,7 +197,6 @@ export default function Home() {
               >
                 Cancel
               </Button>
-
               <Button type="submit" disabled={subjectBusy}>
                 {editingSubject ? "Save changes" : "Create subject"}
               </Button>
@@ -229,6 +204,9 @@ export default function Home() {
           </form>
         </ModalShell>
       ) : null}
+      
+      
+      
 
       {subjectToDelete ? (
         <ConfirmDialog
@@ -240,6 +218,8 @@ export default function Home() {
           onConfirm={handleDeleteSubject}
         />
       ) : null}
+      
+      
     </>
   );
 }
