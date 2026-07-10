@@ -1,0 +1,14 @@
+{
+  "buildCommand": "rm -rf frontend/node_modules frontend/package-lock.json node_modules package-lock.json && npm install --include=dev && cd frontend && npm install --include=dev && npm run build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

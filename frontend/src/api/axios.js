@@ -2,8 +2,17 @@ import axios from "axios";
 
 import { AUTH_TOKEN_KEY } from "../utils/constants";
 
+const isProd = import.meta.env.MODE === "production";
+let baseURL = import.meta.env.VITE_API_URL || "/api";
+if (
+  (isProd && baseURL.includes("localhost")) ||
+  (typeof window !== "undefined" && !window.location.hostname.includes("localhost") && baseURL.includes("localhost"))
+) {
+  baseURL = "/api";
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL,
   withCredentials: true,
 });
 

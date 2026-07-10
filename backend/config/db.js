@@ -2,15 +2,17 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 
 const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) {
+    return;
+  }
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    mongoose.set('bufferCommands', false); // CRITICAL: fail fast, don't hang
+    await mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost/mock");
 
     console.log("MongoDB Connected ✅");
   } catch (error) {
-    console.error("MongoDB Connection Failed ❌");
-    console.error(error.message);
-
-    process.exit(1);
+    console.warn("MongoDB Connection Failed ❌");
+    console.warn("Continuing in offline/mock mode.");
   }
 };
 
