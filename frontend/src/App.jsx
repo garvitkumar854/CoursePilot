@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
 
 import Home from "./pages/Home";
 import Subject from "./pages/Subject";
@@ -43,6 +44,74 @@ function LoginRedirect() {
   return <Navigate to="/" replace />;
 }
 
+const pageVariants = {
+  initial: { opacity: 0, y: 15 },
+  in: { opacity: 1, y: 0 },
+  out: { opacity: 0, y: -15 }
+};
+
+const pageTransition = {
+  type: "tween",
+  ease: "anticipate",
+  duration: 0.3
+};
+
+function AnimatedRoutes() {
+  const location = useLocation();
+  
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route 
+          path="/" 
+          element={
+            <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="h-full">
+              <Home />
+            </motion.div>
+          } 
+        />
+
+        <Route 
+          path="/subject/:slug" 
+          element={
+            <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="h-full">
+              <Subject />
+            </motion.div>
+          } 
+        />
+
+        <Route 
+          path="/privacy" 
+          element={
+            <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="h-full">
+              <PrivacyPolicy />
+            </motion.div>
+          } 
+        />
+        <Route 
+          path="/terms" 
+          element={
+            <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="h-full">
+              <TermsOfService />
+            </motion.div>
+          } 
+        />
+
+        <Route path="/login" element={<LoginRedirect />} />
+
+        <Route 
+          path="*" 
+          element={
+            <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="h-full">
+              <Home />
+            </motion.div>
+          } 
+        />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
 export default function App() {
   return (
     <AuthModalProvider>
@@ -50,18 +119,7 @@ export default function App() {
         <div className="flex min-h-screen flex-col bg-slate-50/50">
           <AppShell />
           <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<Home />} />
-
-              <Route path="/subject/:slug" element={<Subject />} />
-
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/terms" element={<TermsOfService />} />
-
-              <Route path="/login" element={<LoginRedirect />} />
-
-              <Route path="*" element={<Home />} />
-            </Routes>
+            <AnimatedRoutes />
           </main>
           <Footer />
         </div>
@@ -69,3 +127,4 @@ export default function App() {
     </AuthModalProvider>
   );
 }
+

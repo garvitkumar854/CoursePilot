@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import useSWR from "swr";
 import api from "../api/axios";
 import { fetcher } from "../utils/fetcher";
@@ -6,7 +6,7 @@ import Hero from "../components/layout/Hero";
 import SubjectCard from "../components/subject/SubjectCard";
 import Button from "../components/ui/Button";
 import ModalShell from "../components/ui/ModalShell";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import useAuth from "../hooks/useAuth";
 
@@ -129,10 +129,13 @@ export default function Home() {
     }
   }
 
-  const filteredSubjects = subjects.filter((subject) => {
-    const value = `${subject.name} ${subject.slug}`.toLowerCase();
-    return value.includes(search.toLowerCase());
-  });
+  const filteredSubjects = useMemo(() => {
+    const s = search.toLowerCase();
+    return subjects.filter((subject) => {
+      const value = `${subject.name} ${subject.slug}`.toLowerCase();
+      return value.includes(s);
+    });
+  }, [subjects, search]);
 
   return (
     <>
@@ -179,72 +182,93 @@ export default function Home() {
               No subjects match your search.
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <motion.div 
+              className="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+              variants={{
+                hidden: { opacity: 0 },
+                show: {
+                  opacity: 1,
+                  transition: {
+                    staggerChildren: 0.1
+                  }
+                }
+              }}
+              initial="hidden"
+              animate="show"
+            >
               {filteredSubjects.map((subject, index) => (
-                <SubjectCard
+                <motion.div 
                   key={subject._id}
-                  subject={subject}
-                  index={index}
-                  isAdmin={isAuthenticated}
-                  onEdit={openEditSubject}
-                  onDelete={promptDeleteSubject}
-                />
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+                  }}
+                >
+                  <SubjectCard
+                    subject={subject}
+                    index={index}
+                    isAdmin={isAuthenticated}
+                    onEdit={openEditSubject}
+                    onDelete={promptDeleteSubject}
+                  />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </section>
       </main>
 
-      {subjectModalOpen ? (
-        <ModalShell
-          title={editingSubject ? "Edit subject" : "Add subject"}
-          description="Create a new subject card or update the current one."
-          onClose={closeSubjectModal}
-        >
-          <form className="space-y-4" onSubmit={handleSubjectSubmit}>
-            <input
-              type="text"
-              value={subjectName}
-              onChange={(event) => setSubjectName(event.target.value)}
-              placeholder="Subject name"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium"
-            />
-            {subjectFormError ? (
-              <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {subjectFormError}
-              </p>
-            ) : null}
-      
-      
-            <div className="flex flex-wrap justify-end gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={closeSubjectModal}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={subjectBusy}>
-                {editingSubject ? "Save changes" : "Create subject"}
-              </Button>
-            </div>
-          </form>
-        </ModalShell>
-      ) : null}
-      
-      
-      
+      <AnimatePresence>
+        {subjectModalOpen ? (
+          <ModalShell
+            title={editingSubject ? "Edit subject" : "Add subject"}
+            description="Create a new subject card or update the current one."
+            onClose={closeSubjectModal}
+          >
+            <form className="space-y-4" onSubmit={handleSubjectSubmit}>
+              <input
+                type="text"
+                value={subjectName}
+                onChange={(event) => setSubjectName(event.target.value)}
+                placeholder="Subject name"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium"
+              />
+              {subjectFormError ? (
+                <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {subjectFormError}
+                </p>
+              ) : null}
+        
+        
+              <div className="flex flex-wrap justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={closeSubjectModal}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={subjectBusy}>
+                  {editingSubject ? "Save changes" : "Create subject"}
+                </Button>
+              </div>
+            </form>
+          </ModalShell>
+        ) : null}
+      </AnimatePresence>
 
-      {subjectToDelete ? (
-        <ConfirmDialog
-          title="Delete subject?"
-          description={`This will permanently remove ${subjectToDelete.name} and its assignments.`}
-          confirmLabel={subjectBusy ? "Deleting..." : "Delete subject"}
-          destructive
-          onClose={() => setSubjectToDelete(null)}
-          onConfirm={handleDeleteSubject}
-        />
-      ) : null}
+      <AnimatePresence>
+        {subjectToDelete ? (
+          <ConfirmDialog
+            title="Delete subject?"
+            description={`This will permanently remove ${subjectToDelete.name} and its assignments.`}
+            confirmLabel={subjectBusy ? "Deleting..." : "Delete subject"}
+            destructive
+            onClose={() => setSubjectToDelete(null)}
+            onConfirm={handleDeleteSubject}
+          />
+        ) : null}
+      </AnimatePresence>
       
       
     </>

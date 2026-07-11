@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import api from "../api/axios";
@@ -213,6 +213,15 @@ export default function Subject() {
     }
   }
 
+  const filteredAssignments = useMemo(() => {
+    const s = search.toLowerCase();
+    return assignments.filter((assignment) =>
+      `${assignment.title || ""} ${assignment.description || ""}`
+        .toLowerCase()
+        .includes(s)
+    );
+  }, [assignments, search]);
+
   if (loading) {
     return (
       <main className="mx-auto max-w-6xl px-6 py-10">
@@ -249,12 +258,6 @@ export default function Subject() {
       </main>
     );
   }
-
-  const filteredAssignments = assignments.filter((assignment) =>
-    `${assignment.title} ${assignment.description}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
 
   if (!subject) {
     return (
@@ -314,107 +317,108 @@ export default function Subject() {
         </div>
       </main>
 
-      {assignmentModalOpen ? (
-        <ModalShell
-          title={editingAssignment ? "Edit Assignment" : "Add Assignment"}
-          description={
-            editingAssignment
-              ? `Edit details below.`
-              : `Create a new assignment under ${subject?.name || "this subject"}.`
-          }
-          onClose={closeAssignmentModal}
-          maxWidth="max-w-lg"
-        >
-          <form className="space-y-3.5" onSubmit={handleAssignmentSubmit}>
-            <div className="grid gap-3 grid-cols-[100px_1fr]">
+      <AnimatePresence>
+        {assignmentModalOpen ? (
+          <ModalShell
+            title={editingAssignment ? "Edit Assignment" : "Add Assignment"}
+            description={
+              editingAssignment
+                ? `Edit details below.`
+                : `Create a new assignment under ${subject?.name || "this subject"}.`
+            }
+            onClose={closeAssignmentModal}
+            maxWidth="max-w-lg"
+          >
+            <form className="space-y-3.5" onSubmit={handleAssignmentSubmit}>
+              <div className="grid gap-3 grid-cols-[100px_1fr]">
+                <div>
+                  <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#64748b]">
+                    No.
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={assignmentNumber}
+                    onChange={(event) =>
+                      setAssignmentNumber(Number(event.target.value) || 1)
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium text-sm"
+                    placeholder="No."
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#64748b]">
+                    Assignment Title
+                  </label>
+                  <input
+                    type="text"
+                    value={assignmentTitle}
+                    onChange={(event) => setAssignmentTitle(event.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium text-sm"
+                    placeholder="Assignment title"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#64748b]">
-                  No.
+                  Description (Optional)
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={assignmentNumber}
-                  onChange={(event) =>
-                    setAssignmentNumber(Number(event.target.value) || 1)
-                  }
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium text-sm"
-                  placeholder="No."
+                <textarea
+                  value={assignmentDescription}
+                  onChange={(event) => setAssignmentDescription(event.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium text-xs leading-relaxed"
+                  placeholder="Brief assignment details, resources, or links..."
                 />
               </div>
+
               <div>
                 <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#64748b]">
-                  Assignment Title
+                  Assigned Date
                 </label>
-                <input
-                  type="text"
-                  value={assignmentTitle}
-                  onChange={(event) => setAssignmentTitle(event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium text-sm"
-                  placeholder="Assignment title"
+                <DatePicker
+                  value={assignmentDate}
+                  onChange={setAssignmentDate}
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#64748b]">
-                Description (Optional)
-              </label>
-              <textarea
-                value={assignmentDescription}
-                onChange={(event) => setAssignmentDescription(event.target.value)}
-                rows={3}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium text-xs leading-relaxed"
-                placeholder="Brief assignment details, resources, or links..."
-              />
-            </div>
+              {assignmentError ? (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-700">
+                  {assignmentError}
+                </p>
+              ) : null}
 
-            <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#64748b]">
-                Assigned Date
-              </label>
-              <DatePicker
-                value={assignmentDate}
-                onChange={setAssignmentDate}
-              />
-            </div>
+              <div className="flex flex-wrap justify-end gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={closeAssignmentModal}
+                  className="rounded-full px-4 py-2 text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={assignmentBusy} className="rounded-full px-5 py-2 text-xs font-bold">
+                  {editingAssignment ? "Save Changes" : "Create Assignment"}
+                </Button>
+              </div>
+            </form>
+          </ModalShell>
+        ) : null}
+      </AnimatePresence>
 
-            {assignmentError ? (
-              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-700">
-                {assignmentError}
-              </p>
-            ) : null}
-
-            <div className="flex flex-wrap justify-end gap-2 pt-1">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={closeAssignmentModal}
-                className="rounded-full px-4 py-2 text-xs"
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={assignmentBusy} className="rounded-full px-5 py-2 text-xs font-bold">
-                {editingAssignment ? "Save Changes" : "Create Assignment"}
-              </Button>
-            </div>
-          </form>
-        </ModalShell>
-      ) : null}
-      
-      
-      
-
-      {assignmentToDelete ? (
-        <ConfirmDialog
-          title="Delete assignment?"
-          description={`Are you sure you want to delete assignment "${assignmentToDelete.title}"? This action cannot be undone.`}
-          confirmLabel={assignmentBusy ? "Deleting..." : "Delete"}
-          destructive
-          onClose={() => setAssignmentToDelete(null)}
-          onConfirm={handleDeleteAssignment}
-        />
-      ) : null}
+      <AnimatePresence>
+        {assignmentToDelete ? (
+          <ConfirmDialog
+            title="Delete assignment?"
+            description={`Are you sure you want to delete assignment "${assignmentToDelete.title}"? This action cannot be undone.`}
+            confirmLabel={assignmentBusy ? "Deleting..." : "Delete"}
+            destructive
+            onClose={() => setAssignmentToDelete(null)}
+            onConfirm={handleDeleteAssignment}
+          />
+        ) : null}
+      </AnimatePresence>
       
       
     </>

@@ -1,31 +1,50 @@
+import { useMemo } from "react";
 import AssignmentGroup from "./AssignmentGroup";
 import { DragDropContext } from "@hello-pangea/dnd";
 
-export default function AssignmentList({ assignments, onEdit, onDelete, onMoveUp, onMoveDown, onReorder }) {
-  const groupedAssignments = assignments.reduce((groups, assignment) => {
-    const dateKey = new Date(assignment.assignedDate)
-      .toISOString()
-      .slice(0, 10);
-    const dateLabel = new Date(assignment.assignedDate).toLocaleDateString(
-      "en-GB",
-      {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      },
-    );
+// ✅ Removed motion wrapper from list entirely
+// Stagger was re-triggering on every group toggle — causing lag
+// Groups animate themselves individually via AssignmentGroup
 
-    if (!groups[dateKey]) {
-      groups[dateKey] = {
-        label: dateLabel,
-        items: [],
-      };
-    }
+export default function AssignmentList({
+  assignments,
+  onEdit,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+  onReorder,
+}) {
+  const sortedGroupedEntries = useMemo(() => {
+    const groups = assignments.reduce((acc, assignment) => {
+      const rawDate = assignment.assignedDate;
+      const dateKey =
+        typeof rawDate === "string"
+          ? rawDate.slice(0, 10)
+          : new Date(rawDate).toISOString().slice(0, 10);
 
-    groups[dateKey].items.push(assignment);
+      if (!acc[dateKey]) {
+        // ✅ Use UTC date parts to avoid timezone label mismatch
+        const [year, month, day] = dateKey.split("-").map(Number);
+        const dateLabel = new Date(Date.UTC(year, month - 1, day))
+          .toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+            timeZone: "UTC", // ✅ Force UTC — no timezone shift
+          });
 
-    return groups;
-  }, {});
+        acc[dateKey] = {
+          label: dateLabel,
+          items: [],
+        };
+      }
+
+      acc[dateKey].items.push(assignment);
+      return acc;
+    }, {});
+
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [assignments]);
 
   if (assignments.length === 0) {
     return (
@@ -33,7 +52,6 @@ export default function AssignmentList({ assignments, onEdit, onDelete, onMoveUp
         <h2 className="text-base font-semibold text-[color:var(--cp-fg)] sm:text-lg">
           No Assignments Found
         </h2>
-
         <p className="mt-2 text-sm text-black/60">
           Try a different search or add assignments.
         </p>
@@ -45,51 +63,49 @@ export default function AssignmentList({ assignments, onEdit, onDelete, onMoveUp
     if (!result.destination) return;
     const { source, destination } = result;
 
-    if (source.droppableId === destination.droppableId && source.index === destination.index) {
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
       return;
     }
 
     const draggedId = result.draggableId;
     const isDifferentGroup = source.droppableId !== destination.droppableId;
     const newDate = isDifferentGroup ? destination.droppableId : null;
-    
-    const destGroup = groupedAssignments[destination.droppableId]?.items || [];
-    
-    let targetId = null;
+
+    const targetGroupData = sortedGroupedEntries.find(
+      ([date]) => date === destination.droppableId
+    );
+    const destGroup = targetGroupData ? targetGroupData[1].items : [];
+
+    let targetId = draggedId;
     if (destGroup.length > 0) {
-      if (destination.index < destGroup.length) {
-        targetId = destGroup[destination.index]._id;
-      } else {
-        targetId = destGroup[destGroup.length - 1]._id; // Append to end
-      }
-    } else {
-      targetId = draggedId;
+      const clampedIndex = Math.min(destination.index, destGroup.length - 1);
+      targetId = destGroup[clampedIndex]._id;
     }
-    
-    if (targetId || newDate) {
-      onReorder?.(draggedId, targetId || draggedId, newDate);
-    }
+
+    onReorder?.(draggedId, targetId, newDate);
   };
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
+      {/* ✅ Plain div — no motion wrapper */}
       <div className="space-y-3 sm:space-y-4">
-        {Object.entries(groupedAssignments)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([date, group]) => (
-            <AssignmentGroup
-              key={date}
-              date={date} // droppableId
-              label={group.label}
-              assignments={group.items}
-              allAssignments={assignments}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onMoveUp={onMoveUp}
-              onMoveDown={onMoveDown}
-              onReorder={onReorder}
-            />
-          ))}
+        {sortedGroupedEntries.map(([date, group]) => (
+          <AssignmentGroup
+            key={date}
+            date={date}
+            label={group.label}
+            assignments={group.items}
+            allAssignments={assignments}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onMoveUp={onMoveUp}
+            onMoveDown={onMoveDown}
+            onReorder={onReorder}
+          />
+        ))}
       </div>
     </DragDropContext>
   );
