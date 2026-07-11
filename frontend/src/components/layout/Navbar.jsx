@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { GraduationCap, LogIn, LogOut } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import { useAuthModal } from "../../context/AuthModalContext";
+import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {
   const { isAuthenticated, logout } = useAuth();
@@ -38,23 +39,26 @@ export default function Navbar() {
             </p>
           </div>
         </Link>
-        {isAuthenticated ? (
-          <button
-            onClick={logout}
-            className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full border border-slate-200 bg-white text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-red-600 hover:border-red-200 hover:shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
-          >
-            <LogOut size={14} className="sm:w-4 sm:h-4" />
-            <span>Logout</span>
-          </button>
-        ) : (
-          <button
-            onClick={openLogin}
-            className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-6 py-2 sm:py-2.5 rounded-full bg-slate-900 text-xs sm:text-sm font-semibold text-white hover:bg-slate-800 hover:shadow-lg transition-all cursor-pointer whitespace-nowrap shrink-0"
-          >
-            <LogIn size={14} className="sm:w-4 sm:h-4" />
-            <span><span className="hidden min-[400px]:inline">Admin </span>Login</span>
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <NotificationBell />
+          {isAuthenticated ? (
+            <button
+              onClick={logout}
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full border border-slate-200 bg-white text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-red-600 hover:border-red-200 hover:shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <LogOut size={14} className="sm:w-4 sm:h-4" />
+              <span>Logout</span>
+            </button>
+          ) : (
+            <button
+              onClick={openLogin}
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-6 py-2 sm:py-2.5 rounded-full bg-slate-900 text-xs sm:text-sm font-semibold text-white hover:bg-slate-800 hover:shadow-lg transition-all cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <LogIn size={14} className="sm:w-4 sm:h-4" />
+              <span><span className="hidden min-[400px]:inline">Admin </span>Login</span>
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );

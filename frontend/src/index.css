@@ -88,3 +88,31 @@ select {
 .highlight-pulse {
   animation: highlight-glow 4s ease-in-out !important;
 }
+
+@keyframes swing {
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(10deg); }
+  20% { transform: rotate(-10deg); }
+  30% { transform: rotate(8deg); }
+  40% { transform: rotate(-8deg); }
+  50% { transform: rotate(5deg); }
+  60% { transform: rotate(-5deg); }
+  70% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-swing {
+  animation: swing 1.8s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+/* Enable hardware acceleration across transitions */
+.transition-all,
+.transition-transform,
+.transition-opacity,
+.transition {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+}
+

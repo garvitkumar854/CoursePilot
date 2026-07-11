@@ -12,22 +12,36 @@ const notificationSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    type: {
+      type: String,
+      enum: [
+        "subject_created",
+        "subject_updated",
+        "subject_deleted",
+        "assignment_created",
+        "assignment_updated",
+        "assignment_deleted",
+      ],
+      required: true,
+    },
     subjectSlug: {
       type: String,
       default: "",
     },
-    type: {
+    assignmentId: {
       type: String,
-      enum: ["create_subject", "update_subject", "delete_subject", "create_assignment", "update_assignment", "delete_assignment"],
-      default: "create_assignment",
-    }
+      default: "",
+    },
+    isRead: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// High performance index to fetch latest notifications quickly
-notificationSchema.index({ createdAt: -1 });
+notificationSchema.index({ isRead: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Notification", notificationSchema);

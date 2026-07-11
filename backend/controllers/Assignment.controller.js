@@ -46,9 +46,10 @@ const createAssignment = async (req, res, next) => {
     try {
       await Notification.create({
         title: "Assignment Added",
-        body: `New Assignment #${assignment.assignmentNumber}: "${assignment.title}" added to "${subject.name}".`,
+        body: `Assignment #${assignment.assignmentNumber}: "${assignment.title}" posted in "${subject.name}".`,
+        type: "assignment_created",
         subjectSlug: subject.slug,
-        type: "create_assignment",
+        assignmentId: assignment._id.toString(),
       });
     } catch (err) {
       console.error("Failed to create assignment notification:", err);
@@ -156,9 +157,10 @@ const updateAssignment = async (req, res, next) => {
     try {
       await Notification.create({
         title: "Assignment Updated",
-        body: `Assignment #${assignment.assignmentNumber}: "${assignment.title}" under "${subject ? subject.name : "Classroom"}" was updated by Admin.`,
+        body: `Assignment #${assignment.assignmentNumber}: "${assignment.title}" in "${subject ? subject.name : "syllabus"}" was updated.`,
+        type: "assignment_updated",
         subjectSlug: subject ? subject.slug : "",
-        type: "update_assignment",
+        assignmentId: assignment._id.toString(),
       });
     } catch (err) {
       console.error("Failed to create assignment update notification:", err);
@@ -205,9 +207,8 @@ const deleteAssignment = async (req, res, next) => {
     try {
       await Notification.create({
         title: "Assignment Removed",
-        body: `Assignment "${assignment.title}" was deleted.`,
-        subjectSlug: subject ? subject.slug : "",
-        type: "delete_assignment",
+        body: `Assignment "${assignment.title}" was removed from "${subject ? subject.name : "syllabus"}".`,
+        type: "assignment_deleted",
       });
     } catch (err) {
       console.error("Failed to create assignment deletion notification:", err);

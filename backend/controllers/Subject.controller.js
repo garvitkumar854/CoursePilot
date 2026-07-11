@@ -79,13 +79,13 @@ const createSubject = async (req, res, next) => {
 
     try {
       await Notification.create({
-        title: "New Subject Created",
-        body: `Subject "${subject.name}" has been added to CoursePilot.`,
+        title: "New Subject Added",
+        body: `"${subject.name}" has been added to the syllabus.`,
+        type: "subject_created",
         subjectSlug: subject.slug,
-        type: "create_subject",
       });
     } catch (err) {
-      console.error("Failed to create subject notification:", err);
+      console.error("Failed to create subject creation notification:", err);
     }
 
     res.status(201).json(subject);
@@ -144,10 +144,10 @@ const updateSubject = async (req, res, next) => {
 
     try {
       await Notification.create({
-        title: "Subject Details Updated",
-        body: `Subject "${subject.name}" has been updated by Admin.`,
+        title: "Subject Updated",
+        body: `Subject has been renamed to "${subject.name}".`,
+        type: "subject_updated",
         subjectSlug: subject.slug,
-        type: "update_subject",
       });
     } catch (err) {
       console.error("Failed to create subject update notification:", err);
@@ -188,8 +188,8 @@ const deleteSubject = async (req, res, next) => {
     try {
       await Notification.create({
         title: "Subject Removed",
-        body: `Subject "${subject.name}" has been deleted from CoursePilot.`,
-        type: "delete_subject",
+        body: `Subject "${subject.name}" and its assignments were removed.`,
+        type: "subject_deleted",
       });
     } catch (err) {
       console.error("Failed to create subject deletion notification:", err);
