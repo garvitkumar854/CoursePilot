@@ -189,10 +189,28 @@ const deleteAssignment = async (req, res, next) => {
   }
 };
 
+const getAllAssignments = async (req, res, next) => {
+  try {
+    console.log("[DATABASE] MongoDB: Querying all active assignments populated with subject...");
+    const assignments = await Assignment.find({ isActive: true })
+      .populate("subjectId", "name slug")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: assignments,
+    });
+  } catch (error) {
+    console.error("[DATABASE] MongoDB Error in getAllAssignments:", error);
+    next(error);
+  }
+};
+
 module.exports = {
   createAssignment,
   getAssignmentsBySubject,
   getAssignmentById,
   updateAssignment,
   deleteAssignment,
+  getAllAssignments,
 };

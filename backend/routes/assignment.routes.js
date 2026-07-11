@@ -6,10 +6,14 @@ const {
   getAssignmentById,
   updateAssignment,
   deleteAssignment,
+  getAllAssignments,
 } = require("../controllers/Assignment.controller");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
 const router = express.Router();
+
+// Get All Active Assignments across all subjects
+router.get("/", getAllAssignments);
 
 // Create Assignment
 router.post("/create", adminMiddleware, createAssignment);

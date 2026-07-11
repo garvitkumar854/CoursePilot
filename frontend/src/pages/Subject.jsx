@@ -36,6 +36,26 @@ export default function Subject() {
     }
   }, [data]);
 
+  // Automatic scroll and glow for target assignment on load
+  useEffect(() => {
+    if (!loading && assignments.length > 0 && window.location.hash) {
+      const targetId = window.location.hash.substring(1);
+      const element = document.getElementById(targetId);
+      if (element) {
+        const timerId = setTimeout(() => {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+          element.classList.add("highlight-pulse");
+          
+          const removeTimer = setTimeout(() => {
+            element.classList.remove("highlight-pulse");
+          }, 4500);
+          return () => clearTimeout(removeTimer);
+        }, 400);
+        return () => clearTimeout(timerId);
+      }
+    }
+  }, [loading, assignments]);
+
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [assignmentNumber, setAssignmentNumber] = useState(1);
@@ -139,16 +159,29 @@ export default function Subject() {
     setIsOrderChanged(true);
   }
 
-  function handleReorderAssignments(draggedId, targetId) {
-    if (draggedId === targetId) return;
+  function handleReorderAssignments(draggedId, targetId, newDate) {
     const draggedIdx = assignments.findIndex((a) => a._id === draggedId);
-    const targetIdx = assignments.findIndex((a) => a._id === targetId);
-
-    if (draggedIdx === -1 || targetIdx === -1) return;
+    if (draggedIdx === -1) return;
 
     const reordered = [...assignments];
     const [draggedAssignment] = reordered.splice(draggedIdx, 1);
-    reordered.splice(targetIdx, 0, draggedAssignment);
+    
+    if (newDate) {
+      draggedAssignment.assignedDate = newDate;
+    }
+
+    if (draggedId === targetId) {
+      // If we just changed group but didn't drop on a specific item, append to group
+      reordered.push(draggedAssignment);
+    } else {
+      const targetIdx = reordered.findIndex((a) => a._id === targetId);
+      if (targetIdx !== -1) {
+        reordered.splice(targetIdx, 0, draggedAssignment);
+      } else {
+        reordered.push(draggedAssignment);
+      }
+    }
+
     setAssignments(reordered);
     setIsOrderChanged(true);
   }
@@ -160,6 +193,7 @@ export default function Subject() {
         assignments.map((assignment, index) =>
           api.put(`/assignments/${assignment._id}`, {
             order: index + 1,
+            assignedDate: assignment.assignedDate,
           })
         )
       );
@@ -232,7 +266,7 @@ export default function Subject() {
 
   return (
     <>
-      <main className="mx-auto max-w-6xl px-6 py-8 sm:py-10">
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10">
         <SubjectHeader subject={subject} />
 
         {isAuthenticated ? (
@@ -256,7 +290,8 @@ export default function Subject() {
           <GooeyInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search assignments"
+            placeholder="Search assignments..."
+            mode="local"
           />
         </div>
 
@@ -274,46 +309,61 @@ export default function Subject() {
 
       {assignmentModalOpen ? (
         <ModalShell
-          title={editingAssignment ? "Edit assignment" : "Add assignment"}
+          title={editingAssignment ? "Edit Assignment" : "Add Assignment"}
           description={
             editingAssignment
-              ? `Edit the details of this assignment.`
+              ? `Edit details below.`
               : `Create a new assignment under ${subject?.name || "this subject"}.`
           }
           onClose={closeAssignmentModal}
-          maxWidth="max-w-2xl"
+          maxWidth="max-w-lg"
         >
-          <form className="space-y-4" onSubmit={handleAssignmentSubmit}>
-            <div className="grid gap-4 md:grid-cols-[140px_1fr]">
-              <input
-                type="number"
-                min="1"
-                value={assignmentNumber}
-                onChange={(event) =>
-                  setAssignmentNumber(Number(event.target.value) || 1)
-                }
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium"
-                placeholder="No."
-              />
-              <input
-                type="text"
-                value={assignmentTitle}
-                onChange={(event) => setAssignmentTitle(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium"
-                placeholder="Assignment title"
+          <form className="space-y-3.5" onSubmit={handleAssignmentSubmit}>
+            <div className="grid gap-3 grid-cols-[100px_1fr]">
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#64748b]">
+                  No.
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={assignmentNumber}
+                  onChange={(event) =>
+                    setAssignmentNumber(Number(event.target.value) || 1)
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium text-sm"
+                  placeholder="No."
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#64748b]">
+                  Assignment Title
+                </label>
+                <input
+                  type="text"
+                  value={assignmentTitle}
+                  onChange={(event) => setAssignmentTitle(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium text-sm"
+                  placeholder="Assignment title"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#64748b]">
+                Description (Optional)
+              </label>
+              <textarea
+                value={assignmentDescription}
+                onChange={(event) => setAssignmentDescription(event.target.value)}
+                rows={3}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium text-xs leading-relaxed"
+                placeholder="Brief assignment details, resources, or links..."
               />
             </div>
 
-            <textarea
-              value={assignmentDescription}
-              onChange={(event) => setAssignmentDescription(event.target.value)}
-              rows={4}
-              className="w-full rounded-[28px] border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium"
-              placeholder="Assignment description"
-            />
-
             <div>
-              <label className="mb-2 block text-sm font-semibold text-[#64748b]">
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#64748b]">
                 Assigned Date
               </label>
               <DatePicker
@@ -323,23 +373,22 @@ export default function Subject() {
             </div>
 
             {assignmentError ? (
-              <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-700">
                 {assignmentError}
               </p>
             ) : null}
-      
-      
 
-            <div className="flex flex-wrap justify-end gap-3">
+            <div className="flex flex-wrap justify-end gap-2 pt-1">
               <Button
                 type="button"
                 variant="secondary"
                 onClick={closeAssignmentModal}
+                className="rounded-full px-4 py-2 text-xs"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={assignmentBusy}>
-                {editingAssignment ? "Save changes" : "Create assignment"}
+              <Button type="submit" disabled={assignmentBusy} className="rounded-full px-5 py-2 text-xs font-bold">
+                {editingAssignment ? "Save Changes" : "Create Assignment"}
               </Button>
             </div>
           </form>

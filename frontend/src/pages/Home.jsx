@@ -25,6 +25,33 @@ export default function Home() {
   const { data: subjects = [], error: swrError, isLoading: loading, mutate } = useSWR("/subjects", fetcher);
   const error = swrError ? "We could not load subjects right now." : "";
 
+  // Scroll position retention
+  useEffect(() => {
+    const handleScroll = () => {
+      sessionStorage.setItem("home_scroll_y", window.scrollY.toString());
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!loading && subjects.length > 0) {
+      const savedScrollY = sessionStorage.getItem("home_scroll_y");
+      if (savedScrollY) {
+        const targetScroll = parseInt(savedScrollY, 10);
+        const timeoutId = setTimeout(() => {
+          window.scrollTo({
+            top: targetScroll,
+            behavior: "instant"
+          });
+        }, 100);
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [loading, subjects]);
+
   useEffect(() => {
     if (!subjectModalOpen) {
       setSubjectFormError("");
@@ -109,12 +136,12 @@ export default function Home() {
 
   return (
     <>
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
         <Hero search={search} setSearch={setSearch} />
 
         <section
           id="subjects"
-          className="mt-6 rounded-4xl border border-black/6 bg-white/80 p-6 shadow-[0_20px_60px_rgba(17,24,39,0.06)] backdrop-blur-xl md:p-8"
+          className="mt-6 rounded-[28px] sm:rounded-4xl border border-black/6 bg-white/80 p-4 sm:p-6 shadow-[0_20px_60px_rgba(17,24,39,0.06)] backdrop-blur-xl md:p-8"
         >
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>

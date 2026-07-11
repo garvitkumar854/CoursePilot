@@ -1,4 +1,4 @@
-import { X, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import Button from "./Button";
 import { motion } from "motion/react";
 
@@ -44,14 +44,6 @@ export default function ConfirmDialog({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900 cursor-pointer"
-            aria-label="Close dialog"
-          >
-            <X size={20} />
-          </button>
         </div>
         <div className="mt-8 flex flex-wrap justify-end gap-3">
           <Button type="button" variant="secondary" onClick={onClose}>

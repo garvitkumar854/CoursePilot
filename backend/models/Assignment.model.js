@@ -43,6 +43,10 @@ const assignmentSchema = new mongoose.Schema(
   }
 );
 
+// High-performance database indexing for rapid queries and sorting
+assignmentSchema.index({ subjectId: 1, isActive: 1, order: 1 });
+assignmentSchema.index({ isActive: 1, createdAt: -1 });
+
 module.exports = mongoose.model(
   "Assignment",
   assignmentSchema

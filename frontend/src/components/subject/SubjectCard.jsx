@@ -196,20 +196,50 @@ export default function SubjectCard({
           >
             Total Assignments {subject.assignmentCount || 0}
           </span>
+
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-100 bg-slate-50/50 px-3 py-1 text-xs text-slate-500 font-medium">
+            <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+            Updated {timeAgo(subject.lastUpdated || subject.updatedAt)}
+          </span>
         </div>
       </div>
 
       <div className="mt-8 flex items-end justify-between">
-        <button
+        <motion.button
           type="button"
           onClick={handleCopy}
-          className="rounded-xl p-2 text-black/55 transition hover:bg-black/5 cursor-pointer"
-          onMouseEnter={(e) => e.currentTarget.style.color = cardColor}
-          onMouseLeave={(e) => e.currentTarget.style.color = ""}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+          className="rounded-xl p-2.5 text-slate-500 hover:bg-slate-100/80 transition-colors cursor-pointer border border-slate-100 bg-white shadow-sm flex items-center justify-center h-10 w-10 overflow-hidden"
           aria-label="Copy subject index"
         >
-          {copied ? <Check size={20} className="text-green-600" /> : <Copy size={20} />}
-        </button>
+          <AnimatePresence mode="wait" initial={false}>
+            {copied ? (
+              <motion.div
+                key="check"
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0, rotate: 45 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
+                <Check size={18} className="text-green-600 font-bold" />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="copy"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                onMouseEnter={(e) => e.currentTarget.style.color = cardColor}
+                onMouseLeave={(e) => e.currentTarget.style.color = ""}
+              >
+                <Copy size={18} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.button>
 
 
         <Link

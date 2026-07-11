@@ -1,11 +1,13 @@
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { Droppable } from "@hello-pangea/dnd";
 
 import AssignmentItem from "./AssignmentItem";
 
-export default function AssignmentGroup({ date, assignments, allAssignments = [], onEdit, onDelete, onMoveUp, onMoveDown, onReorder }) {
+export default function AssignmentGroup({ date, label, assignments, allAssignments = [], onEdit, onDelete, onMoveUp, onMoveDown, onReorder }) {
   const [open, setOpen] = useState(true);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   return (
     <div className="relative rounded-[26px] border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
@@ -16,11 +18,11 @@ export default function AssignmentGroup({ date, assignments, allAssignments = []
       >
         <div>
           <h2 className="text-sm font-semibold tracking-tight text-slate-950 sm:text-base">
-            {date}
+            {label || date}
           </h2>
 
           <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-            {assignments.length} assignment{assignments.length === 1 ? "" : "s"}
+            {assignments.length} Assignment{assignments.length === 1 ? "" : "s"}
           </p>
         </div>
 
@@ -39,29 +41,41 @@ export default function AssignmentGroup({ date, assignments, allAssignments = []
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="overflow-visible"
+            onAnimationStart={() => setIsAnimating(true)}
+            onAnimationComplete={() => setIsAnimating(false)}
+            className={open && !isAnimating ? "overflow-visible" : "overflow-hidden"}
           >
-            <div className="divide-y divide-slate-200 border-t border-slate-200">
-              {assignments.map((assignment) => {
-                const globalIndex = allAssignments.findIndex((a) => a._id === assignment._id);
-                const canMoveUp = globalIndex > 0;
-                const canMoveDown = globalIndex < allAssignments.length - 1;
-                return (
-                  <AssignmentItem
-                    key={assignment._id}
-                    assignment={assignment}
-                    isAdmin
-                    canMoveUp={canMoveUp}
-                    canMoveDown={canMoveDown}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    onMoveUp={onMoveUp}
-                    onMoveDown={onMoveDown}
-                    onReorder={onReorder}
-                  />
-                );
-              })}
-            </div>
+            <Droppable droppableId={date}>
+              {(provided) => (
+                <div 
+                  className="divide-y divide-slate-200 border-t border-slate-200"
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                >
+                  {assignments.map((assignment, index) => {
+                    const globalIndex = allAssignments.findIndex((a) => a._id === assignment._id);
+                    const canMoveUp = globalIndex > 0;
+                    const canMoveDown = globalIndex < allAssignments.length - 1;
+                    return (
+                      <AssignmentItem
+                        key={assignment._id}
+                        index={index}
+                        assignment={assignment}
+                        isAdmin
+                        canMoveUp={canMoveUp}
+                        canMoveDown={canMoveDown}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onMoveUp={onMoveUp}
+                        onMoveDown={onMoveDown}
+                        onReorder={onReorder}
+                      />
+                    );
+                  })}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,11 +1,13 @@
 import { MoreVertical, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { Draggable } from "@hello-pangea/dnd";
 
 import useAuth from "../../hooks/useAuth";
 import ModalShell from "../ui/ModalShell";
 
 export default function AssignmentItem({
+  index,
   assignment,
   isAdmin = false,
   canMoveUp = false,
@@ -19,7 +21,6 @@ export default function AssignmentItem({
   const { isAuthenticated } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
-  const [isDragOver, setIsDragOver] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -48,73 +49,50 @@ export default function AssignmentItem({
     };
   }, [menuOpen]);
 
-  const handleDragStart = (e) => {
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", assignment._id);
-  };
-
-  const handleDragOver = (e) => {
-    if (isAuthenticated && isAdmin) {
-      e.preventDefault();
-      setIsDragOver(true);
-    }
-  };
-
-  const handleDragLeave = () => {
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e) => {
-    if (isAuthenticated && isAdmin) {
-      e.preventDefault();
-      setIsDragOver(false);
-      const draggedId = e.dataTransfer.getData("text/plain");
-      if (draggedId && draggedId !== assignment._id) {
-        onReorder?.(draggedId, assignment._id);
-      }
-    }
-  };
-
   return (
-    <div
-      draggable={isAuthenticated && isAdmin}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className={`relative flex items-center gap-3 px-4 py-4 sm:gap-4 sm:px-6 transition-all duration-200 ${
-        isDragOver ? "bg-blue-50 border-t-2 border-blue-400" : ""
-      } ${isAuthenticated && isAdmin ? "cursor-grab active:cursor-grabbing" : ""}`}
-    >
-      {isAuthenticated && isAdmin && (
-        <div className="flex flex-col items-center gap-0.5 shrink-0 text-slate-400">
-          <button
-            type="button"
-            onClick={() => onMoveUp?.(assignment._id)}
-            disabled={!canMoveUp}
-            className={`rounded-md p-1 transition hover:bg-slate-100 hover:text-slate-700 ${
-              !canMoveUp ? "opacity-20 cursor-not-allowed" : "cursor-pointer"
-            }`}
-            title="Move up"
-          >
-            <ChevronUp size={15} />
-          </button>
-          <div className="text-slate-300">
-            <GripVertical size={15} />
-          </div>
-          <button
-            type="button"
-            onClick={() => onMoveDown?.(assignment._id)}
-            disabled={!canMoveDown}
-            className={`rounded-md p-1 transition hover:bg-slate-100 hover:text-slate-700 ${
-              !canMoveDown ? "opacity-20 cursor-not-allowed" : "cursor-pointer"
-            }`}
-            title="Move down"
-          >
-            <ChevronDown size={15} />
-          </button>
-        </div>
-      )}
+    <Draggable draggableId={assignment._id} index={index} isDragDisabled={!isAuthenticated || !isAdmin}>
+      {(provided, snapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          id={`assignment-${assignment._id}`}
+          className={`relative flex items-center gap-3 px-4 py-4 sm:gap-4 sm:px-6 transition-all duration-200 bg-white ${
+            snapshot.isDragging ? "shadow-xl border border-blue-200 z-[50]" : ""
+          }`}
+          style={provided.draggableProps.style}
+        >
+          {isAuthenticated && isAdmin && (
+            <div className="flex flex-col items-center gap-0.5 shrink-0 text-slate-400">
+              <button
+                type="button"
+                onClick={() => onMoveUp?.(assignment._id)}
+                disabled={!canMoveUp}
+                className={`rounded-md p-1 transition hover:bg-slate-100 hover:text-slate-700 ${
+                  !canMoveUp ? "opacity-20 cursor-not-allowed" : "cursor-pointer"
+                }`}
+                title="Move up"
+              >
+                <ChevronUp size={15} />
+              </button>
+              <div 
+                className="text-slate-300 cursor-grab active:cursor-grabbing hover:text-slate-600 p-0.5"
+                {...provided.dragHandleProps}
+              >
+                <GripVertical size={15} />
+              </div>
+              <button
+                type="button"
+                onClick={() => onMoveDown?.(assignment._id)}
+                disabled={!canMoveDown}
+                className={`rounded-md p-1 transition hover:bg-slate-100 hover:text-slate-700 ${
+                  !canMoveDown ? "opacity-20 cursor-not-allowed" : "cursor-pointer"
+                }`}
+                title="Move down"
+              >
+                <ChevronDown size={15} />
+              </button>
+            </div>
+          )}
 
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-(--cp-accent)/12 text-sm font-semibold text-(--cp-accent)">
         {assignment.assignmentNumber}
@@ -147,11 +125,11 @@ export default function AssignmentItem({
           <AnimatePresence>
             {menuOpen && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.92, y: -8 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, y: -8 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute right-0 top-11 z-[999] w-40 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.12)] origin-top-right"
+                initial={{ opacity: 0, scale: 0.9, y: -4, filter: 'blur(4px)' }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, scale: 0.9, y: -4, filter: 'blur(4px)' }}
+                transition={{ type: "spring", stiffness: 500, damping: 30, mass: 0.8 }}
+                className="absolute right-0 top-11 z-[999] w-40 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md shadow-[0_16px_36px_rgba(15,23,42,0.14)] origin-top-right divide-y divide-slate-100"
               >
                 <button
                   type="button"
@@ -159,7 +137,7 @@ export default function AssignmentItem({
                     setMenuOpen(false);
                     onEdit?.(assignment);
                   }}
-                  className="block w-full px-4 py-3 text-left text-sm hover:bg-slate-50 cursor-pointer text-slate-700 font-medium transition-colors"
+                  className="block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 cursor-pointer text-slate-700 font-medium transition-colors"
                 >
                   Edit
                 </button>
@@ -170,7 +148,7 @@ export default function AssignmentItem({
                     setMenuOpen(false);
                     onDelete?.(assignment);
                   }}
-                  className="block w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 cursor-pointer font-medium transition-colors"
+                  className="block w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 cursor-pointer font-medium transition-colors"
                 >
                   Delete
                 </button>
@@ -181,7 +159,7 @@ export default function AssignmentItem({
                     setMenuOpen(false);
                     setInfoOpen(true);
                   }}
-                  className="block w-full px-4 py-3 text-left text-sm hover:bg-slate-50 cursor-pointer text-slate-700 font-medium transition-colors"
+                  className="block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 cursor-pointer text-slate-700 font-medium transition-colors"
                 >
                   Info
                 </button>
@@ -193,48 +171,57 @@ export default function AssignmentItem({
 
       {infoOpen && (
         <ModalShell
-          title="Assignment Info"
-          description="Detailed metadata for this assignment."
+          title="Assignment Details"
+          description="Metadata overview."
           onClose={() => setInfoOpen(false)}
+          maxWidth="max-w-md"
         >
-          <div className="space-y-4 text-sm text-[#0f172a]">
-            <div>
-              <span className="font-semibold text-[#64748b] block mb-1">Assignment Number</span>
-              <p className="bg-slate-50 rounded-xl px-4 py-2.5 font-mono text-xs border border-slate-100">#{assignment.assignmentNumber}</p>
+          <div className="space-y-3 text-sm text-[#0f172a]">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b] block mb-0.5">Number</span>
+                <p className="bg-slate-50 rounded-xl px-3 py-1.5 font-mono text-xs border border-slate-100 font-bold text-(--cp-accent)">#{assignment.assignmentNumber}</p>
+              </div>
+              <div className="col-span-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b] block mb-0.5">Assigned Date</span>
+                <p className="bg-slate-50 rounded-xl px-3 py-1.5 text-xs border border-slate-100 font-medium">
+                  {new Date(assignment.assignedDate).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' })}
+                </p>
+              </div>
             </div>
+
             <div>
-              <span className="font-semibold text-[#64748b] block mb-1">Title</span>
-              <p className="bg-slate-50 rounded-xl px-4 py-2.5 font-medium border border-slate-100">{assignment.title}</p>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b] block mb-0.5">Title</span>
+              <p className="bg-slate-50 rounded-xl px-3 py-1.5 text-xs font-semibold border border-slate-100 text-[#0f172a]">{assignment.title}</p>
             </div>
+
             {assignment.description && (
               <div>
-                <span className="font-semibold text-[#64748b] block mb-1">Description</span>
-                <p className="bg-slate-50 rounded-xl px-4 py-2.5 text-xs text-[#475569] border border-slate-100 whitespace-pre-wrap">{assignment.description}</p>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b] block mb-0.5">Description</span>
+                <p className="bg-slate-50/50 rounded-xl px-3 py-1.5 text-xs text-[#475569] border border-slate-100/80 whitespace-pre-wrap max-h-32 overflow-y-auto leading-relaxed">{assignment.description}</p>
               </div>
             )}
-            <div>
-              <span className="font-semibold text-[#64748b] block mb-1">Assigned Date</span>
-              <p className="bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100">{new Date(assignment.assignedDate).toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <span className="font-semibold text-[#64748b] block mb-1">Created At</span>
-                <p className="bg-slate-50 rounded-xl px-4 py-2.5 text-xs text-[#475569] border border-slate-100">{new Date(assignment.createdAt).toLocaleString()}</p>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b] block mb-0.5">Created At</span>
+                <p className="bg-slate-50/40 rounded-xl px-3 py-1.5 text-[11px] text-[#64748b] border border-slate-100">{new Date(assignment.createdAt).toLocaleString([], {dateStyle: 'short', timeStyle: 'short'})}</p>
               </div>
               <div>
-                <span className="font-semibold text-[#64748b] block mb-1">Updated At</span>
-                <p className="bg-slate-50 rounded-xl px-4 py-2.5 text-xs text-[#475569] border border-slate-100">{new Date(assignment.updatedAt).toLocaleString()}</p>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b] block mb-0.5">Updated At</span>
+                <p className="bg-slate-50/40 rounded-xl px-3 py-1.5 text-[11px] text-[#64748b] border border-slate-100">{new Date(assignment.updatedAt).toLocaleString([], {dateStyle: 'short', timeStyle: 'short'})}</p>
               </div>
             </div>
-            <div>
-              <span className="font-semibold text-[#64748b] block mb-1">Updated by</span>
-              <p className="bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100 font-medium text-blue-600">{assignment.updatedBy || "Unknown"}</p>
-            </div>
-            <div className="flex justify-end pt-2">
+
+            <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-4">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">Updated By</span>
+                <p className="text-xs font-semibold text-slate-700">{assignment.updatedBy || "System"}</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setInfoOpen(false)}
-                className="rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] cursor-pointer"
+                className="rounded-full bg-[#2563eb] px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#1d4ed8] cursor-pointer shadow-sm"
               >
                 Close
               </button>
@@ -242,7 +229,9 @@ export default function AssignmentItem({
           </div>
         </ModalShell>
       )}
-    </div>
+        </div>
+      )}
+    </Draggable>
   );
 }
 
