@@ -14,7 +14,9 @@ export default function AssignmentGroup({ date, label, assignments, allAssignmen
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between rounded-t-[26px] bg-linear-to-r from-slate-50 to-white px-4 py-4 text-left sm:px-6 cursor-pointer"
+        className={`flex w-full items-center justify-between bg-linear-to-r from-slate-50 to-white px-4 py-4 text-left sm:px-6 cursor-pointer transition-all duration-200 ${
+          open ? "rounded-t-[26px]" : "rounded-[26px]"
+        }`}
       >
         <div>
           <h2 className="text-sm font-semibold tracking-tight text-slate-950 sm:text-base">
@@ -56,6 +58,7 @@ export default function AssignmentGroup({ date, label, assignments, allAssignmen
                     const globalIndex = allAssignments.findIndex((a) => a._id === assignment._id);
                     const canMoveUp = globalIndex > 0;
                     const canMoveDown = globalIndex < allAssignments.length - 1;
+                    const isLast = index === assignments.length - 1;
                     return (
                       <AssignmentItem
                         key={assignment._id}
@@ -69,6 +72,7 @@ export default function AssignmentGroup({ date, label, assignments, allAssignmen
                         onMoveUp={onMoveUp}
                         onMoveDown={onMoveDown}
                         onReorder={onReorder}
+                        isLast={isLast}
                       />
                     );
                   })}

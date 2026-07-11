@@ -17,6 +17,7 @@ export default function AssignmentItem({
   onMoveUp,
   onMoveDown,
   onReorder,
+  isLast = false,
 }) {
   const { isAuthenticated } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -57,8 +58,8 @@ export default function AssignmentItem({
           {...provided.draggableProps}
           id={`assignment-${assignment._id}`}
           className={`relative flex items-center gap-3 px-4 py-4 sm:gap-4 sm:px-6 transition-all duration-200 bg-white ${
-            snapshot.isDragging ? "shadow-xl border border-blue-200 z-[50]" : ""
-          }`}
+            snapshot.isDragging ? "shadow-xl border border-blue-200 z-[50] rounded-2xl" : ""
+          } ${isLast && !snapshot.isDragging ? "rounded-b-[26px]" : ""}`}
           style={provided.draggableProps.style}
         >
           {isAuthenticated && isAdmin && (

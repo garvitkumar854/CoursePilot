@@ -3,8 +3,11 @@ import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
 import Subject from "./pages/Subject";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import useAuth from "./hooks/useAuth";
 import Navbar from "./components/layout/Navbar";
+import Footer from "./components/layout/Footer";
 import LoginModal from "./pages/Login";
 import { AuthModalProvider, useAuthModal } from "./context/AuthModalContext";
 
@@ -44,16 +47,24 @@ export default function App() {
   return (
     <AuthModalProvider>
       <BrowserRouter>
-        <AppShell />
-        <Routes>
-          <Route path="/" element={<Home />} />
+        <div className="flex min-h-screen flex-col bg-slate-50/50">
+          <AppShell />
+          <main className="flex-1">
+            <Routes>
+              <Route path="/" element={<Home />} />
 
-          <Route path="/subject/:slug" element={<Subject />} />
+              <Route path="/subject/:slug" element={<Subject />} />
 
-          <Route path="/login" element={<LoginRedirect />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
 
-          <Route path="*" element={<Home />} />
-        </Routes>
+              <Route path="/login" element={<LoginRedirect />} />
+
+              <Route path="*" element={<Home />} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
       </BrowserRouter>
     </AuthModalProvider>
   );

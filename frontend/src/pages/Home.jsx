@@ -9,6 +9,7 @@ import ModalShell from "../components/ui/ModalShell";
 import { AnimatePresence } from "motion/react";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import useAuth from "../hooks/useAuth";
+import ClassUpdatesFeed from "../components/ui/ClassUpdatesFeed";
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
@@ -139,10 +140,12 @@ export default function Home() {
       <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
         <Hero search={search} setSearch={setSearch} />
 
-        <section
-          id="subjects"
-          className="mt-6 rounded-[28px] sm:rounded-4xl border border-black/6 bg-white/80 p-4 sm:p-6 shadow-[0_20px_60px_rgba(17,24,39,0.06)] backdrop-blur-xl md:p-8"
-        >
+        {/* Responsive Grid containing Subjects and Classroom Live Activity Feed */}
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+          <section
+            id="subjects"
+            className="rounded-[28px] sm:rounded-4xl border border-black/6 bg-white/80 p-4 sm:p-6 shadow-[0_20px_60px_rgba(17,24,39,0.06)] backdrop-blur-xl md:p-8"
+          >
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-black/45">
@@ -192,7 +195,13 @@ export default function Home() {
               ))}
             </div>
           )}
-        </section>
+          </section>
+
+          {/* Right Column: Classroom Updates & Push Notifications Simulator */}
+          <aside className="lg:sticky lg:top-24 h-fit">
+            <ClassUpdatesFeed />
+          </aside>
+        </div>
       </main>
 
       {subjectModalOpen ? (

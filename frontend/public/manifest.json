@@ -1,0 +1,18 @@
+{
+  "short_name": "CoursePilot",
+  "name": "CoursePilot - Academic Navigator",
+  "description": "The ultimate elegant assignment tracker and academic navigation system.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#14b8a6",
+  "display": "standalone",
+  "orientation": "portrait-primary"
+}

@@ -36,6 +36,13 @@ export default function Subject() {
     }
   }, [data]);
 
+  // Scroll to top on mount if there is no hash
+  useEffect(() => {
+    if (!window.location.hash) {
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
   // Automatic scroll and glow for target assignment on load
   useEffect(() => {
     if (!loading && assignments.length > 0 && window.location.hash) {

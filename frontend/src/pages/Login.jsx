@@ -9,6 +9,7 @@ export default function Login({ open = false, onClose }) {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +34,7 @@ export default function Login({ open = false, onClose }) {
       });
 
       if (data?.token) {
-        login(data.token);
+        login(data.token, rememberMe);
         onClose?.();
       }
     } catch (error) {
@@ -122,6 +123,20 @@ export default function Login({ open = false, onClose }) {
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+              </div>
+
+              <div className="flex items-center">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none group">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(event) => setRememberMe(event.target.checked)}
+                    className="h-4 w-4 rounded-lg border-slate-300 text-teal-600 focus:ring-teal-500/20 focus:ring-4 cursor-pointer accent-teal-600 transition"
+                  />
+                  <span className="text-sm font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">
+                    Remember me on this device
+                  </span>
+                </label>
               </div>
 
               {error && (

@@ -1,5 +1,6 @@
 const Assignment = require("../models/Assignment.model");
 const Subject = require("../models/Subject.model");
+const Notification = require("../models/Notification.model");
 
 const createAssignment = async (req, res, next) => {
   try {
@@ -41,6 +42,17 @@ const createAssignment = async (req, res, next) => {
     subject.lastUpdated = new Date();
     await subject.save();
     console.log(`[DATABASE] MongoDB: Updated assignmentCount for subject "${subject.name}" to ${subject.assignmentCount}`);
+
+    try {
+      await Notification.create({
+        title: "Assignment Added",
+        body: `New Assignment #${assignment.assignmentNumber}: "${assignment.title}" added to "${subject.name}".`,
+        subjectSlug: subject.slug,
+        type: "create_assignment",
+      });
+    } catch (err) {
+      console.error("Failed to create assignment notification:", err);
+    }
 
     res.status(201).json({
       success: true,
@@ -141,6 +153,17 @@ const updateAssignment = async (req, res, next) => {
     await assignment.save();
     console.log(`[DATABASE] MongoDB: Assignment ID "${assignment._id}" updated successfully. Next order: ${assignment.order}`);
 
+    try {
+      await Notification.create({
+        title: "Assignment Updated",
+        body: `Assignment #${assignment.assignmentNumber}: "${assignment.title}" under "${subject ? subject.name : "Classroom"}" was updated by Admin.`,
+        subjectSlug: subject ? subject.slug : "",
+        type: "update_assignment",
+      });
+    } catch (err) {
+      console.error("Failed to create assignment update notification:", err);
+    }
+
     res.status(200).json({
       success: true,
       message: "Assignment updated successfully",
@@ -177,6 +200,17 @@ const deleteAssignment = async (req, res, next) => {
       subject.lastUpdated = new Date();
       await subject.save();
       console.log(`[DATABASE] MongoDB: Updated assignmentCount for subject "${subject.name}" to ${subject.assignmentCount}`);
+    }
+
+    try {
+      await Notification.create({
+        title: "Assignment Removed",
+        body: `Assignment "${assignment.title}" was deleted.`,
+        subjectSlug: subject ? subject.slug : "",
+        type: "delete_assignment",
+      });
+    } catch (err) {
+      console.error("Failed to create assignment deletion notification:", err);
     }
 
     res.status(200).json({

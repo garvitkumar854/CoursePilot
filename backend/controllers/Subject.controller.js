@@ -1,5 +1,6 @@
 const Subject = require("../models/Subject.model");
 const Assignment = require("../models/Assignment.model");
+const Notification = require("../models/Notification.model");
 
 const getSubjects = async (req, res, next) => {
   try {
@@ -76,6 +77,17 @@ const createSubject = async (req, res, next) => {
     });
     console.log(`[DATABASE] MongoDB: Subject created successfully. ID: ${subject._id}, Slug: ${subject.slug}`);
 
+    try {
+      await Notification.create({
+        title: "New Subject Created",
+        body: `Subject "${subject.name}" has been added to CoursePilot.`,
+        subjectSlug: subject.slug,
+        type: "create_subject",
+      });
+    } catch (err) {
+      console.error("Failed to create subject notification:", err);
+    }
+
     res.status(201).json(subject);
   } catch (error) {
     console.error("[DATABASE] MongoDB Error in createSubject:", error);
@@ -130,6 +142,17 @@ const updateSubject = async (req, res, next) => {
     await subject.save();
     console.log(`[DATABASE] MongoDB: Subject updated successfully. ID: ${subject._id}, Slug: ${subject.slug}`);
 
+    try {
+      await Notification.create({
+        title: "Subject Details Updated",
+        body: `Subject "${subject.name}" has been updated by Admin.`,
+        subjectSlug: subject.slug,
+        type: "update_subject",
+      });
+    } catch (err) {
+      console.error("Failed to create subject update notification:", err);
+    }
+
     res.status(200).json({
       success: true,
       data: subject,
@@ -161,6 +184,16 @@ const deleteSubject = async (req, res, next) => {
 
     await Subject.findByIdAndDelete(subject._id);
     console.log(`[DATABASE] MongoDB: Subject ID "${subject._id}" deleted successfully.`);
+
+    try {
+      await Notification.create({
+        title: "Subject Removed",
+        body: `Subject "${subject.name}" has been deleted from CoursePilot.`,
+        type: "delete_subject",
+      });
+    } catch (err) {
+      console.error("Failed to create subject deletion notification:", err);
+    }
 
     res.status(200).json({
       success: true,

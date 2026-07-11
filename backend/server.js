@@ -10,6 +10,7 @@ const app = express();
 const subjectRoutes = require("./routes/subject.routes");
 const assignmentRoutes = require("./routes/assignment.routes");
 const authRoutes = require("./routes/auth.routes");
+const notificationRoutes = require("./routes/notification.routes");
 
 // Connect Database
 connectDB();
@@ -26,6 +27,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/assignments", assignmentRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Test Route
 app.get("/", (req, res) => {

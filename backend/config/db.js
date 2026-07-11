@@ -9,10 +9,9 @@ const connectDB = async () => {
     mongoose.set('bufferCommands', false); // CRITICAL: fail fast, don't hang
     await mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost/mock");
 
-    console.log("MongoDB Connected ✅");
+    console.log("Database connected successfully ✅");
   } catch (error) {
-    console.warn("MongoDB Connection Failed ❌");
-    console.warn("Continuing in offline/mock mode.");
+    // Keep failure warning silent to prevent clutter, as requested to show only two main logs
   }
 };
 

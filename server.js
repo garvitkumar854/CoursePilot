@@ -8,30 +8,13 @@ const connectDB = require("./backend/config/db");
 const subjectRoutes = require("./backend/routes/subject.routes");
 const assignmentRoutes = require("./backend/routes/assignment.routes");
 const authRoutes = require("./backend/routes/auth.routes");
+const notificationRoutes = require("./backend/routes/notification.routes");
 
 async function startServer() {
-  console.log(`[INIT] Starting CoursePilot Server in ${process.env.NODE_ENV || 'development'} mode...`);
   const app = express();
 
   // Connect Database
-  console.log("[DATABASE] Initializing database connection...");
   await connectDB();
-
-  // Request logger middleware
-  app.use((req, res, next) => {
-    const start = Date.now();
-    const { method, originalUrl, ip } = req;
-    
-    res.on("finish", () => {
-      const duration = Date.now() - start;
-      const { statusCode } = res;
-      const dbStatus = mongoose.connection.readyState === 1 ? "CONNECTED" : "OFFLINE";
-      console.log(
-        `[SERVER] ${new Date().toISOString()} | ${method.padEnd(6)} | ${originalUrl.split('?')[0].padEnd(35)} | Status: ${statusCode} | Time: ${String(duration).padStart(4)}ms | DB: ${dbStatus} | IP: ${ip}`
-      );
-    });
-    next();
-  });
 
   // Middlewares
   app.use(
@@ -43,13 +26,10 @@ async function startServer() {
   app.use(express.json());
 
   // API Routes
-  console.log("[ROUTE] Registering API routes...");
   app.use("/api/auth", authRoutes);
-  console.log("[ROUTE] -> /api/auth registered");
   app.use("/api/subjects", subjectRoutes);
-  console.log("[ROUTE] -> /api/subjects registered");
   app.use("/api/assignments", assignmentRoutes);
-  console.log("[ROUTE] -> /api/assignments registered");
+  app.use("/api/notifications", notificationRoutes);
 
   // Test Route
   app.get("/api/health", (req, res) => {
@@ -84,7 +64,6 @@ async function startServer() {
 
   // Vite or Static Assets serving
   if (process.env.NODE_ENV !== "production") {
-    console.log("Starting in development mode with Vite middleware...");
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -93,7 +72,6 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    console.log("Starting in production mode...");
     const distPath = path.join(__dirname, "frontend", "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
@@ -103,7 +81,7 @@ async function startServer() {
 
   const PORT = 3000;
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Server is running on port ${PORT} 🚀`);
   });
 }
 

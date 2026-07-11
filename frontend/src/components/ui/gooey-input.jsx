@@ -76,16 +76,15 @@ export function GooeyInput({
         {/* Dynamic sliding fluid background pill for the icon */}
         <motion.div
           layout
-          initial={{ x: 12, borderRadius: "24px" }}
+          initial={{ x: 12, borderRadius: "50%" }}
           animate={{
             x: isFocused ? 8 : 12,
-            scaleX: isFocused ? 1.15 : 1,
-            scaleY: isFocused ? 0.95 : 1,
+            scale: isFocused ? 1.05 : 1,
             backgroundColor: isFocused ? "#2563eb" : "rgba(241, 245, 249, 0.7)",
-            borderRadius: isFocused ? "16px" : "24px",
+            borderRadius: "50%",
           }}
           transition={{ type: "spring", stiffness: 350, damping: 22 }}
-          className="absolute flex items-center justify-center z-10 w-8 h-8 sm:w-10 sm:h-10 origin-left"
+          className="absolute flex items-center justify-center z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full"
         >
           <motion.div
             animate={{

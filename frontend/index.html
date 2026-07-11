@@ -23,6 +23,19 @@
     <!-- Google Fonts Preconnect for loading speed (SEO) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- PWA Requirements -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#14b8a6" />
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js")
+            .then((reg) => console.log("Service Worker registered successfully:", reg.scope))
+            .catch((err) => console.log("Service Worker registration failed:", err));
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
