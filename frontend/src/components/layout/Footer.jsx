@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen, Github, GraduationCap, Heart, Terminal } from "lucide-react";
+import { BookOpen, Code, GraduationCap, Heart, Terminal } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -72,7 +72,7 @@ export default function Footer() {
                     referrerPolicy="no-referrer"
                     className="rounded-lg bg-slate-800 p-2 text-slate-400 hover:text-white hover:bg-slate-700 transition"
                   >
-                    <Github size={16} />
+                    <Code size={16} />
                   </a>
                   <div
                     className="rounded-lg bg-slate-800 p-2 text-slate-400"

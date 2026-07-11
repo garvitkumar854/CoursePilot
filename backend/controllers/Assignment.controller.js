@@ -75,7 +75,7 @@ const getAssignmentsBySubject = async (req, res, next) => {
       isActive: true,
     }).sort({
       order: 1,
-    });
+    }).lean();
     console.log(`[DATABASE] MongoDB: Found ${assignments.length} active assignments.`);
 
     res.status(200).json({
@@ -94,7 +94,7 @@ const getAssignmentById = async (req, res, next) => {
     const { id } = req.params;
     console.log(`[DATABASE] MongoDB: Fetching assignment by ID: "${id}"...`);
 
-    const assignment = await Assignment.findById(id);
+    const assignment = await Assignment.findById(id).lean();
 
     if (!assignment) {
       console.warn(`[DATABASE] MongoDB: Assignment ID "${id}" not found.`);
@@ -229,7 +229,8 @@ const getAllAssignments = async (req, res, next) => {
     console.log("[DATABASE] MongoDB: Querying all active assignments populated with subject...");
     const assignments = await Assignment.find({ isActive: true })
       .populate("subjectId", "name slug")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,

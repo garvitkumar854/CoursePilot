@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import React, { useState, useCallback } from "react";
 import { Droppable } from "@hello-pangea/dnd";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import AssignmentItem from "./AssignmentItem";
 
 // ✅ Variants defined OUTSIDE component — never recreated
@@ -90,17 +90,17 @@ function AssignmentGroup({
         </motion.div>
       </button>
 
-      {/* ✅ AnimatePresence with mode="sync" — faster than default */}
-      <AnimatePresence initial={false} mode="sync">
-        {open && (
-          <motion.div
-            key="content"
-            initial="collapsed"
-            animate="open"
-            exit="collapsed"
-            variants={collapseVariants}
-            style={{ overflow: "hidden" }} // ✅ style not className — avoids Tailwind purge
-          >
+      {/* ✅ DOM-retention strategy: never unmount, just animate height */}
+      <motion.div
+        initial={false}
+        animate={open ? "open" : "collapsed"}
+        variants={collapseVariants}
+        style={{
+          overflow: "hidden",
+          willChange: "height, opacity",
+          pointerEvents: open ? "auto" : "none",
+        }}
+      >
             <Droppable droppableId={date}>
               {(provided, snapshot) => (
                 <div
@@ -139,8 +139,6 @@ function AssignmentGroup({
               )}
             </Droppable>
           </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

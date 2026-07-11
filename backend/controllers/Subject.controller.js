@@ -7,7 +7,7 @@ const getSubjects = async (req, res, next) => {
     console.log("[DATABASE] MongoDB: Querying all subjects sorted by createdAt descending...");
     const subjects = await Subject.find().sort({
       createdAt: -1,
-    });
+    }).lean();
     console.log(`[DATABASE] MongoDB: Found ${subjects.length} subjects.`);
 
     res.status(200).json(subjects);
@@ -22,7 +22,7 @@ const getSubjectBySlug = async (req, res, next) => {
     const { slug } = req.params;
     console.log(`[DATABASE] MongoDB: Querying subject by slug: "${slug}"...`);
 
-    const subject = await Subject.findOne({ slug });
+    const subject = await Subject.findOne({ slug }).lean();
 
     if (!subject) {
       console.warn(`[DATABASE] MongoDB: Subject with slug "${slug}" not found.`);
@@ -38,7 +38,7 @@ const getSubjectBySlug = async (req, res, next) => {
       isActive: true,
     }).sort({
       order: 1,
-    });
+    }).lean();
     console.log(`[DATABASE] MongoDB: Found ${assignments.length} active assignments for subject "${subject.name}".`);
 
     res.status(200).json({

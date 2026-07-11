@@ -1,32 +1,154 @@
-import { useEffect } from "react";
-import { BrowserRouter, Navigate, Routes, Route, useLocation } from "react-router-dom";
+import { useEffect, useRef, lazy, Suspense } from "react";
+import {
+  BrowserRouter,
+  Navigate,
+  Routes,
+  Route,
+  useLocation,
+  useNavigationType,
+} from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 
-import Home from "./pages/Home";
-import Subject from "./pages/Subject";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-import useAuth from "./hooks/useAuth";
+const Home = lazy(() => import("./pages/Home"));
+const Subject = lazy(() => import("./pages/Subject"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import LoginModal from "./pages/Login";
 import { AuthModalProvider, useAuthModal } from "./context/AuthModalContext";
 
-function RequireAdmin({ children }) {
-  const { isAuthenticated } = useAuth();
-  const { openLogin } = useAuthModal();
+// ✅ Page variants — direction aware
+const forwardVariants = {
+  initial: {
+    opacity: 0,
+    x: 30,
+  },
+  animate: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      type: "spring",
+      stiffness: 280,
+      damping: 26,
+      mass: 0.8,
+    },
+  },
+  exit: {
+    opacity: 0,
+    x: -20,
+    transition: {
+      duration: 0.18,
+      ease: "easeIn",
+    },
+  },
+};
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      openLogin();
-    }
-  }, [isAuthenticated, openLogin]);
+const backVariants = {
+  initial: {
+    opacity: 0,
+    x: -30,
+  },
+  animate: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      type: "spring",
+      stiffness: 280,
+      damping: 26,
+      mass: 0.8,
+    },
+  },
+  exit: {
+    opacity: 0,
+    x: 20,
+    transition: {
+      duration: 0.18,
+      ease: "easeIn",
+    },
+  },
+};
 
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
+const popVariants = {
+  initial: {
+    opacity: 0,
+    scale: 0.97,
+  },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 26,
+      mass: 0.8,
+    },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.97,
+    transition: {
+      duration: 0.16,
+      ease: "easeIn",
+    },
+  },
+};
 
-  return children;
+// ✅ Reusable PageWrapper — no more repeated motion.div on every route
+function PageWrapper({ children }) {
+  const navigationType = useNavigationType();
+
+  // Choose variant based on navigation type
+  const variants =
+    navigationType === "POP"
+      ? popVariants       // browser back/forward button
+      : navigationType === "PUSH"
+      ? forwardVariants   // navigating forward
+      : backVariants;     // navigating back
+
+  return (
+    <motion.div
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={variants}
+      className="h-full"
+      style={{ willChange: "transform, opacity" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ✅ Simple 404 page — no separate file needed
+function NotFound() {
+  return (
+    <main className="mx-auto max-w-6xl px-6 py-20 text-center">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 24 }}
+      >
+        <p className="text-8xl font-extrabold text-slate-200 select-none">
+          404
+        </p>
+        <h2 className="mt-4 text-2xl font-bold text-slate-800">
+          Page not found
+        </h2>
+        <p className="mt-2 text-slate-500">
+          The page you are looking for does not exist.
+        </p>
+        <motion.a
+          href="/"
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-[#2563eb] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1d4ed8] transition-colors"
+        >
+          Go Home
+        </motion.a>
+      </motion.div>
+    </main>
+  );
 }
 
 function AppShell() {
@@ -40,72 +162,71 @@ function AppShell() {
   );
 }
 
-function LoginRedirect() {
-  return <Navigate to="/" replace />;
+// ✅ Scroll to top on route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  const prevPathname = useRef(pathname);
+
+  useEffect(() => {
+    if (prevPathname.current !== pathname) {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      prevPathname.current = pathname;
+    }
+  }, [pathname]);
+
+  return null;
 }
-
-const pageVariants = {
-  initial: { opacity: 0, y: 15 },
-  in: { opacity: 1, y: 0 },
-  out: { opacity: 0, y: -15 }
-};
-
-const pageTransition = {
-  type: "tween",
-  ease: "anticipate",
-  duration: 0.3
-};
 
 function AnimatedRoutes() {
   const location = useLocation();
-  
+
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
-            <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="h-full">
+            <PageWrapper>
               <Home />
-            </motion.div>
-          } 
+            </PageWrapper>
+          }
         />
-
-        <Route 
-          path="/subject/:slug" 
+        <Route
+          path="/subject/:slug"
           element={
-            <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="h-full">
+            <PageWrapper>
               <Subject />
-            </motion.div>
-          } 
+            </PageWrapper>
+          }
         />
-
-        <Route 
-          path="/privacy" 
+        <Route
+          path="/privacy"
           element={
-            <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="h-full">
+            <PageWrapper>
               <PrivacyPolicy />
-            </motion.div>
-          } 
+            </PageWrapper>
+          }
         />
-        <Route 
-          path="/terms" 
+        <Route
+          path="/terms"
           element={
-            <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="h-full">
+            <PageWrapper>
               <TermsOfService />
-            </motion.div>
-          } 
+            </PageWrapper>
+          }
         />
 
-        <Route path="/login" element={<LoginRedirect />} />
+        {/* ✅ /login redirects to home — login is a modal */}
+        <Route path="/login" element={<Navigate to="/" replace />} />
 
-        <Route 
-          path="*" 
+        {/* ✅ Proper 404 page */}
+        <Route
+          path="*"
           element={
-            <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="h-full">
-              <Home />
-            </motion.div>
-          } 
+            <PageWrapper>
+              <NotFound />
+            </PageWrapper>
+          }
         />
       </Routes>
     </AnimatePresence>
@@ -118,8 +239,15 @@ export default function App() {
       <BrowserRouter>
         <div className="flex min-h-screen flex-col bg-slate-50/50">
           <AppShell />
+          <ScrollToTop />
           <main className="flex-1">
-            <AnimatedRoutes />
+            <Suspense fallback={
+              <div className="flex min-h-[50vh] w-full items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2563eb] border-t-transparent"></div>
+              </div>
+            }>
+              <AnimatedRoutes />
+            </Suspense>
           </main>
           <Footer />
         </div>
@@ -127,4 +255,3 @@ export default function App() {
     </AuthModalProvider>
   );
 }
-

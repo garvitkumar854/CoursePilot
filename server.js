@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const compression = require("compression");
+const helmet = require("helmet");
 const connectDB = require("./backend/config/db");
 
 const subjectRoutes = require("./backend/routes/subject.routes");
@@ -24,6 +26,10 @@ async function startServer() {
       allowedHeaders: ["Content-Type", "Authorization"],
     })
   );
+  app.use(helmet({
+    contentSecurityPolicy: false, // Turn off CSP temporarily if it blocks Vite assets
+  }));
+  app.use(compression());
 
   // ✅ Body parser with size limit
   app.use(express.json({ limit: "1mb" }));
@@ -95,7 +101,12 @@ async function startServer() {
     // Dev mode — Vite middleware
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: {
+          port: parseInt(process.env.VITE_HMR_PORT) || 24680
+        }
+      },
       appType: "spa",
       root: path.join(__dirname, "frontend"),
     });
