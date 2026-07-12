@@ -1,6 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { GraduationCap, LogIn, LogOut } from "lucide-react";
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion } from "motion/react";
 import useAuth from "../../hooks/useAuth";
 import { useAuthModal } from "../../context/AuthModalContext";
 import NotificationBell from "./NotificationBell";
@@ -50,25 +51,31 @@ const buttonVariants = {
 export default function Navbar() {
   const { isAuthenticated, logout } = useAuth();
   const { openLogin } = useAuthModal();
-  const location = useLocation();
 
-  // ✅ Scroll-aware — navbar shrinks slightly on scroll
-  const { scrollY } = useScroll();
-  const navbarHeight = useTransform(scrollY, [0, 100], [80, 64]);
-  const shadowOpacity = useTransform(scrollY, [0, 50], [1, 0.6]);
+  // ✅ CSS-class based scroll detection — zero JS animation overhead per scroll frame
+  // backdrop-blur stays in compositor thread; no layout recalculation triggered
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <motion.header
       variants={navVariants}
       initial="hidden"
       animate="visible"
-      style={{ height: navbarHeight }}
-      className="sticky top-0 z-50 border-b border-black/5 backdrop-blur-2xl bg-white/70 shadow-sm"
+      // ✅ CSS transition handles shrink on scroll — no JS per-frame layout work
+      // backdrop-blur is isolated in the compositor and won't glitch during transitions
+      className={`sticky top-0 z-50 border-b bg-white/80 backdrop-blur-xl transition-[height,box-shadow,border-color] duration-300 ease-out ${
+        scrolled
+          ? "h-16 shadow-md border-black/8"
+          : "h-20 shadow-sm border-black/5"
+      }`}
     >
-      <motion.div
-        style={{ opacity: shadowOpacity }}
-        className="mx-auto flex h-full max-w-7xl items-center justify-between gap-4 px-6"
-      >
+      <div className="mx-auto flex h-full max-w-7xl items-center justify-between gap-4 px-6">
         {/* ✅ Logo */}
         <motion.div variants={itemVariants}>
           <Link to="/" className="flex items-center gap-3 group">
@@ -154,7 +161,7 @@ export default function Navbar() {
             </motion.button>
           )}
         </motion.div>
-      </motion.div>
+      </div>
     </motion.header>
   );
 }

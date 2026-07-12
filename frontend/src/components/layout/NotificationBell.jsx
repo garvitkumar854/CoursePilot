@@ -43,32 +43,62 @@ export default function NotificationBell() {
     };
   }, [open]);
 
+  // ✅ Optimistic: mark all as read instantly in UI, then sync to backend
   const handleMarkAllRead = async () => {
+    // Only act if there are unread notifications
+    if (notifications.every((n) => n.isRead)) return;
+
+    // Optimistically update local data immediately
+    mutate(
+      { ...response, data: notifications.map((n) => ({ ...n, isRead: true })) },
+      false // don't revalidate yet
+    );
+
     try {
       await api.put("/notifications/mark-all-read");
-      mutate();
     } catch (err) {
-      console.error("Failed to mark all notifications as read:", err);
+      console.error("Failed to mark all as read:", err);
+    } finally {
+      mutate(); // revalidate for consistency
     }
   };
 
+  // ✅ Optimistic: clear instantly from UI, then sync to backend
   const handleClearAll = async () => {
+    if (notifications.length === 0) return;
+
+    // Optimistically clear the list immediately
+    mutate({ ...response, data: [] }, false);
+
     try {
       await api.delete("/notifications/clear-all");
-      mutate();
     } catch (err) {
       console.error("Failed to clear notifications:", err);
+      mutate(); // revert on error
+    } finally {
+      mutate();
     }
   };
 
+  // ✅ Optimistic: mark as read immediately, then sync
   const handleNotificationClick = async (notif) => {
-    // Mark as read in backend
     if (!notif.isRead) {
+      // Optimistically mark as read in local cache
+      mutate(
+        {
+          ...response,
+          data: notifications.map((n) =>
+            n._id === notif._id ? { ...n, isRead: true } : n
+          ),
+        },
+        false
+      );
+
       try {
         await api.put(`/notifications/${notif._id}/read`);
-        mutate();
       } catch (err) {
         console.error("Failed to mark notification as read:", err);
+        mutate(); // revert on error
       }
     }
 
@@ -98,20 +128,18 @@ export default function NotificationBell() {
     }
   };
 
+  // ✅ Fixed: diffHours was dividing by 6000 instead of 60 (was showing wrong hours)
   const formatTime = (dateString) => {
     const now = new Date();
     const date = new Date(dateString);
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 6000);
-    
+
     if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) {
-      const hours = Math.floor(diffMins / 60);
-      return `${hours}h ago`;
-    }
-    const days = Math.floor(diffMins / 1440);
+    const diffHours = Math.floor(diffMins / 60); // ✅ Fixed: was /6000
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const days = Math.floor(diffHours / 24);
     if (days === 1) return "Yesterday";
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
