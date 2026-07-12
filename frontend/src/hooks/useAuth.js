@@ -67,12 +67,17 @@ export default function useAuth() {
     }, []);
 
     const login = (nextToken, remember = false) => {
+        // \u2705 Always store in localStorage \u2014 mobile browsers (esp. Safari) kill session
+        // cookies aggressively when the app is backgrounded or the tab is closed.
+        // localStorage is far more reliable for persistent auth across page loads.
+        window.localStorage.setItem(AUTH_TOKEN_KEY, nextToken);
+
         if (remember) {
-            window.localStorage.setItem(AUTH_TOKEN_KEY, nextToken);
-            setCookie("auth_token", nextToken, 30); // Save for 30 days
+            // Also set a long-lived cookie for cross-device/browser persistence
+            setCookie("auth_token", nextToken, 30); // 30 days
         } else {
-            window.localStorage.removeItem(AUTH_TOKEN_KEY); // Session only, clear localStorage
-            setCookie("auth_token", nextToken); // Session cookie (expires on close)
+            // Session cookie \u2014 expires when browser fully closes (belt + suspenders)
+            setCookie("auth_token", nextToken);
         }
         globalToken = nextToken;
         updateListeners();

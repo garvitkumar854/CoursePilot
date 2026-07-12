@@ -17,10 +17,13 @@ async function startServer() {
   // ✅ Connect Database first
   await connectDB();
 
-  // ✅ CORS — specific origin
+  // ✅ CORS — open in dev (any device on LAN), specific origin in prod
+  const isDev = process.env.NODE_ENV !== "production";
   app.use(
     cors({
-      origin: process.env.CLIENT_URL || "http://localhost:5173",
+      origin: isDev
+        ? true // Allow all origins in dev so mobile devices can connect
+        : (process.env.CLIENT_URL || "http://localhost:3000"),
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],

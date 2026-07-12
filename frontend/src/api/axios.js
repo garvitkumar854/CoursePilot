@@ -1,10 +1,20 @@
 import axios from "axios";
 import { AUTH_TOKEN_KEY } from "../utils/constants";
 
-// ✅ Clean baseURL logic — no fragile string matching
-// In dev: VITE_API_URL=http://localhost:3000/api (set in .env.local)
-// In prod: not set → defaults to /api (relative URL)
 const baseURL = "/api";
+
+// ✅ Read token from localStorage OR cookie — covers mobile session-cookie edge cases
+function getAuthToken() {
+  // 1. Prefer localStorage (most reliable, persists across tabs)
+  const lsToken = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (lsToken) return lsToken;
+
+  // 2. Fallback: parse auth_token cookie (used for session-only logins)
+  const match = document.cookie.match(/(?:^|; )auth_token=([^;]*)/);
+  if (match) return decodeURIComponent(match[1]);
+
+  return null;
+}
 
 const api = axios.create({
   baseURL,
@@ -14,12 +24,10 @@ const api = axios.create({
   timeout: 15000, // 15 seconds
 });
 
-// ✅ Request interceptor — attach auth token
+// ✅ Request interceptor — attach auth token from localStorage OR cookie
 api.interceptors.request.use(
   (config) => {
-    // Read token from localStorage only
-    // (cookie is sent automatically via withCredentials)
-    const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+    const token = getAuthToken();
 
     if (token) {
       config.headers = config.headers || {};
