@@ -16,49 +16,27 @@ const backdropVariants = {
 };
 
 const modalVariants = {
-  hidden: {
-    opacity: 0,
-    scale: 0.92,
-    y: 24,
-  },
+  hidden: { opacity: 0, scale: 0.98, y: 8 },
   visible: {
     opacity: 1,
     scale: 1,
     y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 320,
-      damping: 28,
-      mass: 0.8,
-      // ✅ Stagger children (title + content)
-      staggerChildren: 0.06,
-      delayChildren: 0.05,
-    },
+    transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] },
   },
   exit: {
     opacity: 0,
-    scale: 0.94,
-    y: 16,
-    transition: {
-      duration: 0.18,
-      ease: "easeIn",
-    },
+    scale: 0.98,
+    y: 4,
+    transition: { duration: 0.12, ease: "easeOut" },
   },
 };
 
 const childVariants = {
-  hidden: {
-    opacity: 0,
-    y: 10,
-  },
+  hidden: { opacity: 0, y: 4 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 24,
-    },
+    transition: { duration: 0.16, ease: "easeOut" },
   },
 };
 

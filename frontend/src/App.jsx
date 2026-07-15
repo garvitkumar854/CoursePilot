@@ -1,12 +1,5 @@
 import { useEffect, useRef, lazy, Suspense } from "react";
-import {
-  BrowserRouter,
-  Navigate,
-  Routes,
-  Route,
-  useLocation,
-  useNavigationType,
-} from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 
 const Home = lazy(() => import("./pages/Home"));
@@ -18,100 +11,28 @@ import Footer from "./components/layout/Footer";
 import LoginModal from "./pages/Login";
 import { AuthModalProvider, useAuthModal } from "./context/AuthModalContext";
 
-// ✅ Page variants — direction aware
-const forwardVariants = {
-  initial: {
-    opacity: 0,
-    x: 30,
-  },
+// A short fade and lift keeps navigation clear without a jarring directional spring.
+const pageVariants = {
+  initial: { opacity: 0, y: 8 },
   animate: {
     opacity: 1,
-    x: 0,
-    transition: {
-      type: "spring",
-      stiffness: 280,
-      damping: 26,
-      mass: 0.8,
-    },
+    y: 0,
+    transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] },
   },
   exit: {
     opacity: 0,
-    x: -20,
-    transition: {
-      duration: 0.18,
-      ease: "easeIn",
-    },
+    y: -4,
+    transition: { duration: 0.12, ease: "easeOut" },
   },
 };
-
-const backVariants = {
-  initial: {
-    opacity: 0,
-    x: -30,
-  },
-  animate: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      type: "spring",
-      stiffness: 280,
-      damping: 26,
-      mass: 0.8,
-    },
-  },
-  exit: {
-    opacity: 0,
-    x: 20,
-    transition: {
-      duration: 0.18,
-      ease: "easeIn",
-    },
-  },
-};
-
-const popVariants = {
-  initial: {
-    opacity: 0,
-    scale: 0.97,
-  },
-  animate: {
-    opacity: 1,
-    scale: 1,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 26,
-      mass: 0.8,
-    },
-  },
-  exit: {
-    opacity: 0,
-    scale: 0.97,
-    transition: {
-      duration: 0.16,
-      ease: "easeIn",
-    },
-  },
-};
-
 // ✅ Reusable PageWrapper — no more repeated motion.div on every route
 function PageWrapper({ children }) {
-  const navigationType = useNavigationType();
-
-  // Choose variant based on navigation type
-  const variants =
-    navigationType === "POP"
-      ? popVariants       // browser back/forward button
-      : navigationType === "PUSH"
-      ? forwardVariants   // navigating forward
-      : backVariants;     // navigating back
-
   return (
     <motion.div
       initial="initial"
       animate="animate"
       exit="exit"
-      variants={variants}
+      variants={pageVariants}
       className="h-full"
       style={{ willChange: "transform, opacity" }}
     >

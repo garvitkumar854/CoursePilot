@@ -23,6 +23,8 @@ body,
 
 html {
   scroll-behavior: smooth;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
   font-size: 15px;
 }
 

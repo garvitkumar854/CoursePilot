@@ -60,6 +60,7 @@ export default function SubjectCard({
 }) {
   const subjectNumber = `#${String(index + 1).padStart(2, "0")}`;
   const [menuOpen, setMenuOpen] = useState(false);
+  const copyTimeoutRef = useRef(null);
   const menuRef = useRef(null);
   
   const cardColor = getSubjectColor(subject._id || subject.name);
@@ -92,6 +93,8 @@ export default function SubjectCard({
 
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => () => clearTimeout(copyTimeoutRef.current), []);
+
   const handleCopy = async () => {
     try {
       const { data: res } = await api.get(`/assignments/subject/${subject._id}`);
@@ -107,14 +110,15 @@ export default function SubjectCard({
 
       await navigator.clipboard.writeText(copyText.trim());
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 1800);
     } catch (error) {
       console.error("Copy failed:", error);
     }
   };
 
   return (
-    <div className="group relative overflow-visible rounded-[30px] border border-black/6 bg-white/80 p-6 shadow-[0_14px_40px_rgba(17,24,39,0.07)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(17,24,39,0.12)]">
+    <div className="group relative overflow-visible rounded-[30px] border border-black/6 bg-white/80 p-6 shadow-[0_14px_40px_rgba(17,24,39,0.07)] transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(17,24,39,0.12)]">
       {/* Wrapper to clip the dynamic line to the container's rounded top corners */}
       <div className="absolute inset-0 overflow-hidden rounded-[30px] pointer-events-none" style={{ transform: "translateZ(0)" }}>
         {/* Base trace line */}
@@ -208,22 +212,32 @@ export default function SubjectCard({
         <motion.button
           type="button"
           onClick={handleCopy}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          transition={{ type: "spring", stiffness: 400, damping: 15 }}
-          className="rounded-xl p-2.5 text-slate-500 hover:bg-slate-100/80 transition-colors cursor-pointer border border-slate-100 bg-white shadow-sm flex items-center justify-center h-10 w-10 overflow-hidden"
-          aria-label="Copy subject index"
-        >
+          whileHover={{ y: -1, scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 420, damping: 28 }}
+          className="relative flex h-10 w-10 items-center justify-center overflow-visible rounded-xl border border-slate-100 bg-white text-slate-500 shadow-sm transition-[background-color,color,box-shadow] cursor-pointer hover:bg-slate-100/80 hover:shadow-md"
+          aria-label={copied ? "Subject assignments copied" : "Copy subject assignments"}
+          title={copied ? "Copied" : "Copy subject assignments"}>
           <AnimatePresence mode="wait" initial={false}>
             {copied ? (
               <motion.div
-                key="check"
+                key="copied"
                 initial={{ scale: 0, rotate: -45 }}
                 animate={{ scale: 1, rotate: 0 }}
                 exit={{ scale: 0, rotate: 45 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                transition={{ type: "spring", stiffness: 300, damping: 22 }}
+                className="flex items-center justify-center"
               >
-                <Check size={18} className="text-green-600 font-bold" />
+                <Check size={18} className="text-emerald-600" />
+                <motion.span
+                  initial={{ opacity: 0, x: -4 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -4 }}
+                  transition={{ duration: 0.14 }}
+                  className="absolute left-[calc(100%+0.5rem)] top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg border border-emerald-100 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700 shadow-sm"
+                >
+                  Copied
+                </motion.span>
               </motion.div>
             ) : (
               <motion.div

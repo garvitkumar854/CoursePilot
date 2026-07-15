@@ -60,10 +60,10 @@ export default function Login({ open = false, onClose }) {
             onClick={onClose}
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.98, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
+            exit={{ opacity: 0, scale: 0.98, y: 4 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             className="relative w-full max-w-lg rounded-[32px] border border-white/20 bg-white p-8 shadow-2xl md:p-10"
             onClick={(event) => event.stopPropagation()}
           >

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import useSWR from "swr";
 import api from "../api/axios";
 import { fetcher } from "../utils/fetcher";
@@ -6,7 +6,7 @@ import Hero from "../components/layout/Hero";
 import SubjectCard from "../components/subject/SubjectCard";
 import Button from "../components/ui/Button";
 import ModalShell from "../components/ui/ModalShell";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import useAuth from "../hooks/useAuth";
 
@@ -21,6 +21,7 @@ export default function Home() {
   const [subjectToDelete, setSubjectToDelete] = useState(null);
   const [subjectBusy, setSubjectBusy] = useState(false);
   const [subjectFormError, setSubjectFormError] = useState("");
+  const hasRestoredScroll = useRef(false);
 
   const { data: subjects = [], error: swrError, isLoading: loading, mutate } = useSWR("/subjects", fetcher);
   const error = swrError ? "We could not load subjects right now." : "";
@@ -37,20 +38,19 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!loading && subjects.length > 0) {
-      const savedScrollY = sessionStorage.getItem("home_scroll_y");
-      if (savedScrollY) {
-        const targetScroll = parseInt(savedScrollY, 10);
-        const timeoutId = setTimeout(() => {
-          window.scrollTo({
-            top: targetScroll,
-            behavior: "instant"
-          });
-        }, 100);
-        return () => clearTimeout(timeoutId);
-      }
-    }
-  }, [loading, subjects]);
+    if (loading || hasRestoredScroll.current) return;
+
+    hasRestoredScroll.current = true;
+    const savedScrollY = sessionStorage.getItem("home_scroll_y");
+    if (!savedScrollY) return;
+
+    const targetScroll = parseInt(savedScrollY, 10);
+    const frameId = requestAnimationFrame(() => {
+      window.scrollTo({ top: targetScroll, behavior: "instant" });
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [loading]);
 
   useEffect(() => {
     if (!subjectModalOpen) {
@@ -182,28 +182,9 @@ export default function Home() {
               No subjects match your search.
             </div>
           ) : (
-            <motion.div 
-              className="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
-              variants={{
-                hidden: { opacity: 0 },
-                show: {
-                  opacity: 1,
-                  transition: {
-                    staggerChildren: 0.1
-                  }
-                }
-              }}
-              initial="hidden"
-              animate="show"
-            >
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {filteredSubjects.map((subject, index) => (
-                <motion.div 
-                  key={subject._id}
-                  variants={{
-                    hidden: { opacity: 0, y: 20 },
-                    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
-                  }}
-                >
+                <div key={subject._id}>
                   <SubjectCard
                     subject={subject}
                     index={index}
@@ -211,9 +192,9 @@ export default function Home() {
                     onEdit={openEditSubject}
                     onDelete={promptDeleteSubject}
                   />
-                </motion.div>
+                </div>
               ))}
-            </motion.div>
+            </div>
           )}
         </section>
       </main>

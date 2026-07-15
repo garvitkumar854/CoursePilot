@@ -1,6 +1,6 @@
 {
   "name": "coursepilot-root",
-  "version": "1.0.0",
+  "version": "26.7.8",
   "private": true,
   "scripts": {
     "dev": "node server.js",

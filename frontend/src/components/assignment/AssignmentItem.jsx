@@ -7,6 +7,7 @@ import {
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -42,8 +43,10 @@ function AssignmentItem({
 }) {
   const { isAuthenticated } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const menuRef = useRef(null);
+  const menuButtonRef = useRef(null);
 
   // ✅ Stable callbacks — prevent child re-renders
   const handleMoveUp = useCallback(() => {
@@ -73,7 +76,10 @@ function AssignmentItem({
     if (!menuOpen) return;
 
     const handlePointerDown = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+      if (
+        !menuRef.current?.contains(event.target) &&
+        !menuButtonRef.current?.contains(event.target)
+      ) {
         setMenuOpen(false);
       }
     };
@@ -88,6 +94,31 @@ function AssignmentItem({
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleEscape);
+    };
+  }, [menuOpen]);
+
+  // The group body clips overflow while collapsing, so the action menu is
+  // positioned in a portal above the page instead of inside that container.
+  useLayoutEffect(() => {
+    if (!menuOpen || !menuButtonRef.current) return;
+
+    const updateMenuPosition = () => {
+      const rect = menuButtonRef.current.getBoundingClientRect();
+      const menuWidth = 160;
+      const viewportPadding = 8;
+      const left = Math.min(
+        Math.max(viewportPadding, rect.right - menuWidth),
+        window.innerWidth - menuWidth - viewportPadding
+      );
+      setMenuPosition({ top: rect.bottom + 8, left });
+    };
+
+    updateMenuPosition();
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
     };
   }, [menuOpen]);
 
@@ -166,8 +197,9 @@ function AssignmentItem({
 
           {/* Actions menu */}
           {isAuthenticated && (
-            <div className="relative shrink-0" ref={menuRef}>
+            <div className="shrink-0">
               <button
+                ref={menuButtonRef}
                 type="button"
                 onClick={() => setMenuOpen((prev) => !prev)}
                 className="rounded-full p-2 text-black/45 transition hover:bg-black/5 hover:text-black/75 cursor-pointer"
@@ -176,44 +208,30 @@ function AssignmentItem({
               >
                 <MoreVertical size={18} />
               </button>
-
-              <AnimatePresence>
-                {menuOpen && (
-                  <motion.div
-                    variants={menuVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    transition={menuTransition}
-                    className="absolute right-0 top-11 z-[999] w-40 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_36px_rgba(15,23,42,0.12)] origin-top-right divide-y divide-slate-100"
-                  >
-                    <button
-                      type="button"
-                      onClick={handleEdit}
-                      className="block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 cursor-pointer text-slate-700 font-medium transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      className="block w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 cursor-pointer font-medium transition-colors"
-                    >
-                      Delete
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleInfo}
-                      className="block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 cursor-pointer text-slate-700 font-medium transition-colors"
-                    >
-                      Info
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
           )}
 
+          {createPortal(
+            <AnimatePresence>
+              {menuOpen && menuPosition && (
+                <motion.div
+                  ref={menuRef}
+                  variants={menuVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  transition={menuTransition}
+                  style={menuPosition}
+                  className="fixed z-[1000] w-40 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_36px_rgba(15,23,42,0.12)] origin-top-right divide-y divide-slate-100"
+                >
+                  <button type="button" onClick={handleEdit} className="block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 cursor-pointer text-slate-700 font-medium transition-colors">Edit</button>
+                  <button type="button" onClick={handleDelete} className="block w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 cursor-pointer font-medium transition-colors">Delete</button>
+                  <button type="button" onClick={handleInfo} className="block w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 cursor-pointer text-slate-700 font-medium transition-colors">Info</button>
+                </motion.div>
+              )}
+            </AnimatePresence>,
+            document.body
+          )}
           {/* ✅ Info modal via portal — outside Draggable DOM tree */}
           {infoOpen &&
             createPortal(
