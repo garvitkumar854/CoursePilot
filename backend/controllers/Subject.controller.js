@@ -54,7 +54,7 @@ const getSubjectBySlug = async (req, res, next) => {
 
 const createSubject = async (req, res, next) => {
   try {
-    const { name } = req.body;
+    const { name, accentColor = "" } = req.body;
     console.log(`[DATABASE] MongoDB: Creating a new subject with name: "${name}"...`);
 
     const slug = name
@@ -74,6 +74,7 @@ const createSubject = async (req, res, next) => {
     const subject = await Subject.create({
       name,
       slug,
+      accentColor,
     });
     console.log(`[DATABASE] MongoDB: Subject created successfully. ID: ${subject._id}, Slug: ${subject.slug}`);
 
@@ -98,7 +99,7 @@ const createSubject = async (req, res, next) => {
 const updateSubject = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, accentColor } = req.body;
     console.log(`[DATABASE] MongoDB: Updating subject ID: "${id}" to new name: "${name}"...`);
 
     const subject = await Subject.findById(id);
@@ -137,6 +138,9 @@ const updateSubject = async (req, res, next) => {
 
     subject.name = nextName;
     subject.slug = nextSlug;
+    if (accentColor !== undefined) {
+      subject.accentColor = accentColor;
+    }
     subject.lastUpdated = new Date();
 
     await subject.save();

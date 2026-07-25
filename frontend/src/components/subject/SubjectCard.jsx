@@ -27,18 +27,16 @@ function timeAgo(dateString) {
 }
 
 const SUBJECT_COLORS = [
-  "#2563eb", // vibrant blue
-  "#8b5cf6", // premium purple
-  "#ec4899", // lively pink
-  "#10b981", // fresh emerald
-  "#f59e0b", // warm amber
-  "#3b82f6", // clear indigo-blue
-  "#14b8a6", // sleek teal
-  "#f97316", // bold orange
-  "#f43f5e", // elegant rose
-  "#06b6d4", // bright cyan
-  "#6366f1", // deep indigo
-  "#d946ef", // bright fuchsia
+  "#2563eb",
+  "#8b5cf6",
+  "#ec4899",
+  "#10b981",
+  "#f59e0b",
+  "#14b8a6",
+  "#f97316",
+  "#f43f5e",
+  "#06b6d4",
+  "#6366f1",
 ];
 
 function getSubjectColor(idOrName) {
@@ -63,7 +61,7 @@ export default function SubjectCard({
   const copyTimeoutRef = useRef(null);
   const menuRef = useRef(null);
   
-  const cardColor = getSubjectColor(subject._id || subject.name);
+  const cardColor = subject.accentColor || getSubjectColor(subject._id || subject.name);
 
   useEffect(() => {
     if (!menuOpen) {

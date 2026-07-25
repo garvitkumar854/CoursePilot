@@ -10,6 +10,11 @@ import { AnimatePresence } from "motion/react";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import useAuth from "../hooks/useAuth";
 
+const SUBJECT_ACCENT_COLORS = [
+  "#2563eb", "#8b5cf6", "#ec4899", "#10b981", "#f59e0b",
+  "#14b8a6", "#f97316", "#f43f5e", "#06b6d4", "#6366f1",
+];
+
 export default function Home() {
   const { isAuthenticated } = useAuth();
   const [search, setSearch] = useState("");
@@ -17,6 +22,7 @@ export default function Home() {
   // Modals state
   const [subjectModalOpen, setSubjectModalOpen] = useState(false);
   const [subjectName, setSubjectName] = useState("");
+  const [subjectAccentColor, setSubjectAccentColor] = useState(SUBJECT_ACCENT_COLORS[0]);
   const [editingSubject, setEditingSubject] = useState(null);
   const [subjectToDelete, setSubjectToDelete] = useState(null);
   const [subjectBusy, setSubjectBusy] = useState(false);
@@ -61,6 +67,7 @@ export default function Home() {
   function openCreateSubject() {
     setEditingSubject(null);
     setSubjectName("");
+    setSubjectAccentColor(SUBJECT_ACCENT_COLORS[0]);
     setSubjectFormError("");
     setSubjectModalOpen(true);
   }
@@ -68,6 +75,7 @@ export default function Home() {
   function openEditSubject(subject) {
     setEditingSubject(subject);
     setSubjectName(subject.name);
+    setSubjectAccentColor(subject.accentColor || SUBJECT_ACCENT_COLORS[0]);
     setSubjectFormError("");
     setSubjectModalOpen(true);
   }
@@ -79,6 +87,7 @@ export default function Home() {
     setSubjectModalOpen(false);
     setEditingSubject(null);
     setSubjectName("");
+    setSubjectAccentColor(SUBJECT_ACCENT_COLORS[0]);
     setSubjectFormError("");
   }
 
@@ -87,7 +96,7 @@ export default function Home() {
     try {
       setSubjectBusy(true);
       setSubjectFormError("");
-      const payload = { name: subjectName };
+      const payload = { name: subjectName, accentColor: subjectAccentColor };
       
       if (editingSubject) {
         await api.put(`/subjects/${editingSubject._id}`, payload);
@@ -214,6 +223,30 @@ export default function Home() {
                 placeholder="Subject name"
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 font-medium"
               />
+              <fieldset>
+                <legend className="mb-2 block text-sm font-semibold text-slate-700">
+                  Accent color
+                </legend>
+                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Subject accent color">
+                  {SUBJECT_ACCENT_COLORS.map((color) => {
+                    const selected = subjectAccentColor === color;
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        aria-label={`Use ${color} as the subject accent color`}
+                        onClick={() => setSubjectAccentColor(color)}
+                        className={`h-8 w-8 rounded-full border-2 transition focus:outline-none focus:ring-4 focus:ring-slate-400/25 ${
+                          selected ? "scale-110 border-slate-900 ring-2 ring-slate-900/15" : "border-white hover:scale-105"
+                        }`}
+                        style={{ backgroundColor: color }}
+                      />
+                    );
+                  })}
+                </div>
+              </fieldset>
               {subjectFormError ? (
                 <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {subjectFormError}

@@ -2,6 +2,7 @@ const express = require("express");
 
 const {
   createAssignment,
+  importAssignments,
   getAssignmentsBySubject,
   getAssignmentById,
   updateAssignment,
@@ -17,6 +18,9 @@ router.get("/", getAllAssignments);
 
 // Create Assignment
 router.post("/create", adminMiddleware, createAssignment);
+
+// Import a validated text-file batch
+router.post("/import", adminMiddleware, importAssignments);
 
 // Get All Assignments of a Subject
 router.get("/subject/:subjectId", getAssignmentsBySubject);

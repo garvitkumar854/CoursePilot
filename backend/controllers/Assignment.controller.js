@@ -242,8 +242,118 @@ const getAllAssignments = async (req, res, next) => {
   }
 };
 
+
+const importAssignments = async (req, res, next) => {
+  try {
+    const { subjectId, assignments: rawAssignments } = req.body;
+
+    if (!Array.isArray(rawAssignments) || rawAssignments.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Add at least one assignment to import.",
+      });
+    }
+
+    if (rawAssignments.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "A single import can contain up to 100 assignments.",
+      });
+    }
+
+    const subject = await Subject.findById(subjectId);
+    if (!subject) {
+      return res.status(404).json({
+        success: false,
+        message: "Subject not found",
+      });
+    }
+
+    const assignments = rawAssignments.map((item, index) => {
+      const assignmentNumber = Number(item?.assignmentNumber);
+      const title = String(item?.title || "").trim();
+      const description = String(item?.description || "").trim();
+      const assignedDate = String(item?.assignedDate || "");
+      const parsedDate = new Date(`${assignedDate}T00:00:00.000Z`);
+
+      if (
+        !Number.isInteger(assignmentNumber) ||
+        assignmentNumber < 1 ||
+        !title ||
+        Number.isNaN(parsedDate.getTime()) ||
+        parsedDate.toISOString().slice(0, 10) !== assignedDate
+      ) {
+        throw new Error(`Invalid assignment on import row ${index + 1}.`);
+      }
+
+      return {
+        subjectId: subject._id,
+        assignmentNumber,
+        title,
+        description,
+        assignedDate: parsedDate,
+        updatedBy: req.user?.username || "",
+      };
+    });
+
+    const existingAssignments = await Assignment.find({ subjectId }).sort({
+      assignedDate: 1,
+      order: 1,
+    });
+
+    const startOrder = existingAssignments.length;
+    const createdAssignments = await Assignment.insertMany(
+      assignments.map((assignment, index) => ({
+        ...assignment,
+        order: startOrder + index + 1,
+      }))
+    );
+
+    const orderedAssignments = [...existingAssignments, ...createdAssignments].sort(
+      (a, b) =>
+        new Date(a.assignedDate).getTime() - new Date(b.assignedDate).getTime() ||
+        a.order - b.order
+    );
+
+    await Assignment.bulkWrite(
+      orderedAssignments.map((assignment, index) => ({
+        updateOne: {
+          filter: { _id: assignment._id },
+          update: { $set: { order: index + 1 } },
+        },
+      }))
+    );
+
+    subject.assignmentCount = await Assignment.countDocuments({ subjectId });
+    subject.lastUpdated = new Date();
+    await subject.save();
+
+    try {
+      await Notification.create({
+        title: "Assignments Imported",
+        body: `${createdAssignments.length} assignments were added to "${subject.name}".`,
+        type: "assignment_created",
+        subjectSlug: subject.slug,
+      });
+    } catch (notificationError) {
+      console.error("Failed to create assignment import notification:", notificationError);
+    }
+
+    res.status(201).json({
+      success: true,
+      count: createdAssignments.length,
+      data: createdAssignments,
+    });
+  } catch (error) {
+    if (error.message?.startsWith("Invalid assignment on import row")) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    next(error);
+  }
+};
 module.exports = {
   createAssignment,
+  importAssignments,
   getAssignmentsBySubject,
   getAssignmentById,
   updateAssignment,

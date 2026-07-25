@@ -13,6 +13,53 @@ import ModalShell from "../components/ui/ModalShell";
 import { AnimatePresence } from "motion/react";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import DatePicker from "../components/ui/DatePicker";
+import { Upload } from "lucide-react";
+
+function parseAssignmentImportFile(text) {
+  let activeDate = "";
+  const assignments = [];
+
+  text.replace(/^\uFEFF/, "").split(/\r?\n/).forEach((rawLine, index) => {
+    const lineNumber = index + 1;
+    const line = rawLine.trim();
+
+    if (!line || line.startsWith("#")) return;
+
+    const dateMatch = line.match(/^\[(\d{4}-\d{2}-\d{2})]$/);
+    if (dateMatch) {
+      const parsedDate = new Date(`${dateMatch[1]}T00:00:00.000Z`);
+      if (
+        Number.isNaN(parsedDate.getTime()) ||
+        parsedDate.toISOString().slice(0, 10) !== dateMatch[1]
+      ) {
+        throw new Error(`Line ${lineNumber}: use a valid YYYY-MM-DD date.`);
+      }
+      activeDate = dateMatch[1];
+      return;
+    }
+
+    const assignmentMatch = line.match(/^\[(\d+)]\s+\[([^\]]+)](?:\s+\[(.*)])?$/);
+    if (!assignmentMatch) {
+      throw new Error(`Line ${lineNumber}: expected [number] [title] [description].`);
+    }
+    if (!activeDate) {
+      throw new Error(`Line ${lineNumber}: add a [YYYY-MM-DD] line before assignments.`);
+    }
+
+    assignments.push({
+      assignedDate: activeDate,
+      assignmentNumber: Number(assignmentMatch[1]),
+      title: assignmentMatch[2].trim(),
+      description: (assignmentMatch[3] || "").trim(),
+    });
+  });
+
+  if (assignments.length === 0) {
+    throw new Error("No assignments were found in this file.");
+  }
+
+  return assignments;
+}
 
 export default function Subject() {
   const { slug } = useParams();
@@ -74,7 +121,10 @@ export default function Subject() {
   const [assignmentToDelete, setAssignmentToDelete] = useState(null);
   const [assignmentBusy, setAssignmentBusy] = useState(false);
   const [assignmentError, setAssignmentError] = useState("");
-
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importError, setImportError] = useState("");
   function openAssignmentModal() {
     setEditingAssignment(null);
     setAssignmentNumber(assignments.length + 1);
@@ -103,6 +153,54 @@ export default function Subject() {
     setEditingAssignment(null);
   }
 
+
+  function openImportModal() {
+    setImportFile(null);
+    setImportError("");
+    setImportModalOpen(true);
+  }
+
+  function closeImportModal() {
+    if (importBusy) return;
+    setImportModalOpen(false);
+    setImportFile(null);
+    setImportError("");
+  }
+
+  async function handleAssignmentImport(event) {
+    event.preventDefault();
+    if (!subject || !importFile) return;
+
+    if (isOrderChanged) {
+      setImportError("Save your current order before importing assignments.");
+      return;
+    }
+
+    if (importFile.size > 1024 * 1024) {
+      setImportError("Choose a text file smaller than 1 MB.");
+      return;
+    }
+
+    try {
+      setImportBusy(true);
+      setImportError("");
+      const assignmentsToImport = parseAssignmentImportFile(await importFile.text());
+
+      await api.post("/assignments/import", {
+        subjectId: subject._id,
+        assignments: assignmentsToImport,
+      });
+
+      await mutate();
+      closeImportModal();
+    } catch (error) {
+      setImportError(
+        error?.response?.data?.message || error?.message || "Could not import assignments."
+      );
+    } finally {
+      setImportBusy(false);
+    }
+  }
   async function handleAssignmentSubmit(event) {
     event.preventDefault();
     if (!subject) return;
@@ -290,6 +388,10 @@ export default function Subject() {
                 {savingOrder ? "Saving..." : "Save Order"}
               </Button>
             )}
+            <Button variant="secondary" onClick={openImportModal} className="gap-2">
+              <Upload size={16} />
+              Upload file
+            </Button>
             <Button onClick={openAssignmentModal}>Add Assignment</Button>
           </div>
         ) : null}
@@ -407,6 +509,62 @@ export default function Subject() {
         ) : null}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {importModalOpen ? (
+          <ModalShell
+            title="Upload assignments"
+            description="Import multiple assignments from one formatted text file."
+            onClose={closeImportModal}
+            maxWidth="max-w-xl"
+          >
+            <form className="space-y-4" onSubmit={handleAssignmentImport}>
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#64748b]">
+                  Text file
+                </label>
+                <input
+                  type="file"
+                  accept=".txt,text/plain"
+                  onChange={(event) => {
+                    setImportFile(event.target.files?.[0] || null);
+                    setImportError("");
+                  }}
+                  className="block w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-300"
+                />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold text-slate-700">Required format</p>
+                <pre className="mt-2 overflow-x-auto whitespace-pre text-xs leading-5 text-slate-600">{`[2026-08-01]
+[1] [Assignment title] [Optional description]
+[2] [Another title] [Optional description]
+
+[2026-08-08]
+[3] [Next assignment] [Description]`}</pre>
+                <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                  Date sections may appear in any order. Imported assignments are validated first, then the full subject list is ordered by date and the sequence in this file.
+                </p>
+              </div>
+
+              {importError ? (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-700">
+                  {importError}
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={closeImportModal} className="rounded-full px-4 py-2 text-xs">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={!importFile || importBusy} className="gap-2 rounded-full px-5 py-2 text-xs font-bold">
+                  <Upload size={15} />
+                  {importBusy ? "Importing..." : "Import assignments"}
+                </Button>
+              </div>
+            </form>
+          </ModalShell>
+        ) : null}
+      </AnimatePresence>
       <AnimatePresence>
         {assignmentToDelete ? (
           <ConfirmDialog
