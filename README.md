@@ -56,9 +56,29 @@ npm run lint
 npm run build
 ```
 
-## Production
+## Deploy to Vercel
 
-The project uses `output: "standalone"`. Deploy `.next/standalone`, `.next/static`, and `public`, then start with:
+The project deploys to Vercel with zero configuration (Next.js is auto-detected, Node 20.9+ is pinned via `engines`).
+
+1. Push the repo to GitHub, then in [Vercel](https://vercel.com/new) choose **Import Project** and select the repository.
+2. Keep the defaults — Framework: **Next.js**, Build Command: `next build`, Install Command: `npm ci`.
+3. Add the environment variables (Project → Settings → Environment Variables):
+
+   | Variable | Required | Purpose |
+   | --- | --- | --- |
+   | `MONGODB_URI` | For live data + admin | MongoDB connection string |
+   | `JWT_SECRET` | For admin login | Long random secret signing the admin session cookie |
+   | `NEXT_PUBLIC_SITE_URL` | Recommended | Absolute site URL used in metadata, sitemap and robots |
+
+   Without `MONGODB_URI` / `JWT_SECRET` the site still builds and serves the bundled fallback catalog in read-only mode.
+
+4. Deploy. Vercel builds with `npm run build`; the standalone/self-host bundle is skipped automatically on Vercel (`VERCEL=1`).
+
+If you use MongoDB Atlas, allow connections from anywhere (`0.0.0.0/0`) in Network Access, because Vercel serverless functions use dynamic IPs — and pick a Vercel function region close to your Atlas cluster for low latency.
+
+## Self-hosted production
+
+Outside Vercel the project uses `output: "standalone"`. Deploy `.next/standalone`, `.next/static`, and `public` (the `postbuild` script already copies these), then start with:
 
 ```bash
 node .next/standalone/server.js
