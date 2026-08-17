@@ -13,7 +13,9 @@ async function exists(target) {
     }
 }
 
-if (await exists(standalone)) {
+if (process.env.VERCEL) {
+    console.log("Vercel build detected — skipping standalone asset preparation.");
+} else if (await exists(standalone)) {
     const staticSource = path.join(root, ".next", "static");
     const staticTarget = path.join(standalone, ".next", "static");
     const publicSource = path.join(root, "public");
