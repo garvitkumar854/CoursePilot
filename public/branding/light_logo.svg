@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" role="img" aria-labelledby="title desc">
+  <title id="title">CoursePilot</title><desc id="desc">CoursePilot placeholder light theme logo</desc>
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#3b82f6"/><stop offset="1" stop-color="#4f46e5"/></linearGradient></defs>
+  <rect x="4" y="4" width="88" height="88" rx="28" fill="url(#g)"/>
+  <path d="M30 31h36M30 48h26M30 65h20" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+  <path d="m59 62 8 8 15-19" fill="none" stroke="#bfdbfe" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="112" y="62" fill="#0f172a" font-family="Arial,Helvetica,sans-serif" font-size="43" font-weight="800" letter-spacing="-2">CoursePilot</text>
+</svg>

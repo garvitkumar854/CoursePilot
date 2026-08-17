@@ -1,38 +1,27 @@
 {
-  "name": "coursepilot-root",
-  "version": "26.7.8",
+  "name": "coursepilot-2.0",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node server.js",
-    "build": "rm -rf frontend/node_modules frontend/package-lock.json node_modules package-lock.json && npm install --include=dev && npm install --include=dev --prefix frontend && npm run build --prefix frontend",
-    "start": "NODE_ENV=production node server.js",
-    "lint": "echo 'Skipping lint' || exit 0"
+    "dev": "next dev -p 3000 -H 0.0.0.0",
+    "build": "next build",
+    "start": "node .next/standalone/server.js",
+    "lint": "eslint",
+    "postbuild": "node scripts/prepare-standalone.mjs"
   },
   "dependencies": {
-    "@hello-pangea/dnd": "^18.0.1",
-    "@tailwindcss/vite": "^4.3.1",
-    "axios": "^1.18.1",
     "bcryptjs": "^3.0.3",
-    "compression": "^1.8.1",
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "helmet": "^8.2.0",
-    "jsonwebtoken": "^9.0.3",
-    "lucide-react": "^1.21.0",
-    "mongoose": "^9.7.0",
-    "motion": "^12.0.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.0",
-    "swr": "^2.4.2",
-    "tailwindcss": "^4.3.1",
-    "vite": "^8.1.0"
+    "framer-motion": "^13.1.0",
+    "mongodb": "^7.5.0",
+    "next": "16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.2",
-    "esbuild": "^0.28.0"
+    "@tailwindcss/postcss": "^4",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.0",
+    "tailwindcss": "^4"
   }
 }

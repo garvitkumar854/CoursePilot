@@ -1,20 +1,65 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# CoursePilot 2.0
 
-# Run and deploy your AI Studio app
+CoursePilot is a responsive, installable assignment tracker built with Next.js, MongoDB and Framer Motion.
 
-This contains everything you need to run your app locally.
+## Local development
 
-View your app in AI Studio: https://ai.studio/apps/a522adda-107e-4e9e-be4e-8794fb4e0420
+```bash
+npm ci
+npm run dev
+```
 
-## Run Locally
+Open [http://localhost:3000](http://localhost:3000).
 
-**Prerequisites:**  Node.js
+## Environment
 
+Create `.env.local` and configure these values in your deployment provider as secrets:
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+MONGODB_URI=mongodb://...
+JWT_SECRET=use-a-long-random-secret
+NEXT_PUBLIC_SITE_URL=https://your-domain.example
+```
+
+`MONGODB_URI` and `JWT_SECRET` are required for admin login and database changes. Without MongoDB, public pages use the bundled fallback catalog.
+
+## Custom branding
+
+Replace the files in `public/branding/` while keeping the same names:
+
+| File | Purpose |
+| --- | --- |
+| `light_logo.svg` | Navbar logo on the fixed light theme |
+| `dark_logo.svg` | Navbar logo on the dark theme |
+| `icon-192.png` | PWA and browser icon, 192×192 |
+| `icon-512.png` | PWA and social icon, 512×512 |
+| `icon-maskable-512.png` | Maskable Android PWA icon, 512×512 with safe padding |
+| `apple-touch-icon.png` | iOS home-screen icon, 180×180 |
+
+Transparent SVG wordmarks work best in the navbar. Keep important maskable-icon artwork inside the central 80% safe area.
+
+## PWA
+
+The production build includes:
+
+- a web app manifest at `/manifest.webmanifest`
+- an offline fallback page
+- a service worker that caches static assets and previously opened pages
+- install icons, Apple web-app metadata and theme colors
+
+The service worker registers only in production.
+
+## Quality checks
+
+```bash
+npm run lint
+npm run build
+```
+
+## Production
+
+The project uses `output: "standalone"`. Deploy `.next/standalone`, `.next/static`, and `public`, then start with:
+
+```bash
+node .next/standalone/server.js
+```
