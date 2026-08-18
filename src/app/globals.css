@@ -27,9 +27,24 @@ html[data-theme="dark"] {
   box-sizing: border-box;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   1. ZERO-LAG THEME SWITCH
+   While `.no-transitions` is present on <html>, every transition and
+   animation in the tree is killed with !important, so the theme swap commits
+   as a single paint with no interpolated color fade. The theme toggle adds
+   this class, commits the theme, then removes it on the next microtask.
+   ───────────────────────────────────────────────────────────────────────── */
+.no-transitions *,
+.no-transitions *::before,
+.no-transitions *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
 html {
   scroll-behavior: smooth;
   background: var(--background);
+  overscroll-behavior-y: contain;
 }
 
 body {
@@ -42,6 +57,7 @@ body {
   font-family: var(--font-inter), Inter, Arial, sans-serif;
   margin: 0;
   padding: 0;
+  overscroll-behavior-y: contain;
   transition: background-color 240ms ease, color 240ms ease;
 }
 
@@ -291,6 +307,60 @@ html {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   3. GPU-ONLY MOTION PRIMITIVES
+   The only animated properties anywhere in this file are `opacity` and
+   `transform: translate3d(x, y, 0)` — compositor-only, zero layout work.
+   Tailwind v4 translate/rotate/scale utilities use the independent
+   `translate` / `rotate` / `scale` CSS properties, so these keyframes compose
+   with them instead of overriding them.
+   ───────────────────────────────────────────────────────────────────────── */
+.gpu-layer {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+/* Drop-in replacement for `transition-all`: only compositor/paint-safe
+   properties can ever interpolate, so no interaction can animate width,
+   height, top, margin or any other layout-forcing property. Duration and
+   easing stay owned by Tailwind's duration-* / ease-* utilities. */
+.transition-gpu {
+  transition-property: transform, translate, scale, rotate, opacity, background-color, color, border-color, box-shadow;
+}
+
+.gpu-fade {
+  animation: gpu-fade 200ms ease both;
+}
+
+.gpu-enter {
+  animation: gpu-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gpu-enter-scale {
+  animation: gpu-enter-scale 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.icon-swap {
+  animation: icon-swap 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   4. SCROLL CONTAINMENT + LONG-LIST RENDER BOUNDARIES
+   `content-visibility: auto` skips style/layout/paint for offscreen loop
+   items and reserves their geometry with `contain-intrinsic-size`, so long
+   subject/assignment lists stay O(viewport) on the main thread.
+   ───────────────────────────────────────────────────────────────────────── */
+.contain-scroll {
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.loop-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+}
+
 .responsive-container {
   container-type: inline-size;
   width: min(100%, 80rem);
@@ -405,6 +475,26 @@ html {
 
 @keyframes fade-out {
   to { opacity: 0; }
+}
+
+@keyframes gpu-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gpu-enter {
+  from { opacity: 0; transform: translate3d(0, -0.4rem, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes gpu-enter-scale {
+  from { opacity: 0; transform: translate3d(0, 0.5rem, 0) scale(0.97); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes icon-swap {
+  from { opacity: 0; transform: translate3d(0, 0, 0) scale(0.7); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
 @media (max-width: 40rem) {

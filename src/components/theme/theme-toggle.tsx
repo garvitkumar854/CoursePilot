@@ -3,20 +3,32 @@
 import { useEffect } from "react";
 
 const STORAGE_KEY = "coursepilot-theme";
+const NO_TRANSITIONS_CLASS = "no-transitions";
 type Theme = "light" | "dark";
 
 function applyTheme(theme: string | null): Theme {
     const nextTheme: Theme = theme === "dark" ? "dark" : "light";
     const root = document.documentElement;
 
-    // Keep transition suppression active for the paint that contains the color
-    // change. No layout read or synchronous React update is needed.
-    root.classList.add("theme-switching");
+    // 1. Suppress every CSS transition/animation in the tree (see
+    //    `.no-transitions *` in globals.css) so the swap commits as one paint.
+    root.classList.add(NO_TRANSITIONS_CLASS);
+
+    // 2. Switch the theme attributes. No React state, no layout read.
     root.dataset.theme = nextTheme;
     root.classList.toggle("dark", nextTheme === "dark");
     root.style.colorScheme = nextTheme;
 
-    requestAnimationFrame(() => root.classList.remove("theme-switching"));
+    // 3. Force a single style/layout pass while suppression is active. This
+    //    locks the new colors into computed style before any transition can
+    //    start, so the whole switch lands in one frame (well under 8ms).
+    void root.offsetHeight;
+
+    // 4. Re-enable transitions on the next microtask. Nothing fades after
+    //    this: the color change was already committed in step 3, so there is
+    //    no trailing animation to catch up with the click.
+    window.setTimeout(() => root.classList.remove(NO_TRANSITIONS_CLASS), 0);
+
     return nextTheme;
 }
 
@@ -60,10 +72,12 @@ export default function ThemeToggle() {
             onClick={toggleTheme}
             aria-label="Toggle light and dark theme"
             title="Toggle light and dark theme"
-            className="theme-toggle relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:text-blue-600 active:scale-95 sm:h-10 sm:w-10"
+            className="theme-toggle relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:text-blue-600 active:scale-95 sm:h-10 sm:w-10"
         >
-            <span className="theme-sun absolute transition-all duration-300"><SunIcon /></span>
-            <span className="theme-moon absolute transition-all duration-300"><MoonIcon /></span>
+            {/* Sun/moon crossfade is declared once in globals.css (`.theme-toggle
+                .theme-sun/.theme-moon`) and only animates transform + opacity. */}
+            <span className="theme-sun absolute"><SunIcon /></span>
+            <span className="theme-moon absolute"><MoonIcon /></span>
         </button>
     );
 }

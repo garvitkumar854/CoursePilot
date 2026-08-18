@@ -1,6 +1,5 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useRef, useState } from "react";
 import {
     IMPORT_FORMAT_SAMPLE,
@@ -8,8 +7,6 @@ import {
     parseAssignmentFile,
     validateImportAssignments,
 } from "@/lib/assignment-import";
-
-const EASE = [0.22, 1, 0.36, 1];
 
 function CloseIcon() {
     return (
@@ -87,15 +84,13 @@ function Field({ label, className = "", ...props }) {
 }
 
 function PreviewRow({ assignment, index, onChange, onRemove }) {
+    // Uncontrolled rows: every field is a native input seeded with
+    // `defaultValue`. Edits are written straight into the draft record (a
+    // ref-owned object) on input — React does not render at all for
+    // keystrokes, so a 40-row import costs one paint per character, not 40
+    // re-renders plus layout animation.
     return (
-        <motion.div
-            layout
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, x: -12, transition: { duration: 0.18, ease: EASE } }}
-            transition={{ duration: 0.24, ease: EASE }}
-            className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm"
-        >
+        <div className="gpu-enter rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
             <div className="flex items-start gap-3">
                 <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-500">
                     {index + 1}
@@ -104,20 +99,20 @@ function PreviewRow({ assignment, index, onChange, onRemove }) {
                 <div className="min-w-0 flex-1 space-y-2.5">
                     <Field
                         label="Title"
-                        value={assignment.title}
+                        defaultValue={assignment.title}
                         placeholder="Assignment title"
-                        onChange={(event) => onChange({ title: event.target.value })}
+                        onInput={(event) => onChange({ title: event.currentTarget.value })}
                     />
                     <Field
                         label="Description"
-                        value={assignment.description}
+                        defaultValue={assignment.description}
                         placeholder="Optional description"
-                        onChange={(event) => onChange({ description: event.target.value })}
+                        onInput={(event) => onChange({ description: event.currentTarget.value })}
                     />
                     <Field
                         label="Assigned date"
                         type="date"
-                        value={assignment.assignedDate}
+                        defaultValue={assignment.assignedDate}
                         onChange={(event) => onChange({ assignedDate: event.target.value })}
                         className="max-w-[190px]"
                     />
@@ -132,15 +127,21 @@ function PreviewRow({ assignment, index, onChange, onRemove }) {
                     <TrashIcon />
                 </button>
             </div>
-        </motion.div>
+        </div>
     );
 }
 
 export default function UploadAssignmentsModal({ open, subjectName, subjectSlug, onClose, onImport }) {
     const fileInputRef = useRef(null);
+    // Draft records are ref-owned so rows can mutate them in place on input
+    // without a single React render per keystroke. `assignments` is a
+    // structural mirror of the ref that render reads: it is only replaced
+    // (via `commitList`) when the list structure actually changes — file
+    // parse, row removal, or a date edit that re-groups.
+    const assignmentsRef = useRef([]);
+    const [assignments, setAssignments] = useState([]);
     const [fileName, setFileName] = useState("");
     const [isDragging, setIsDragging] = useState(false);
-    const [assignments, setAssignments] = useState([]);
     const [parseErrors, setParseErrors] = useState([]);
     const [formError, setFormError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -149,10 +150,23 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
 
     const groups = useMemo(() => groupAssignmentsByDate(assignments), [assignments]);
 
+    // Flat key → index lookup so row badges stay O(n) per structural render
+    // instead of the previous O(n²) findIndex-per-row.
+    const rowIndexByKey = useMemo(() => {
+        const map = new Map();
+        assignments.forEach((assignment, index) => map.set(assignment.key, index));
+        return map;
+    }, [assignments]);
+
+    const commitList = (next) => {
+        assignmentsRef.current = next;
+        setAssignments(next);
+    };
+
     const reset = () => {
+        commitList([]);
         setFileName("");
         setIsDragging(false);
-        setAssignments([]);
         setParseErrors([]);
         setFormError("");
         setIsSubmitting(false);
@@ -179,10 +193,10 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
             const text = await file.text();
             const { assignments: parsed, errors } = parseAssignmentFile(text);
 
-            setAssignments(parsed);
+            commitList(parsed);
             setParseErrors(errors);
         } catch {
-            setAssignments([]);
+            commitList([]);
             setParseErrors([{ line: 0, message: "That file could not be read as text." }]);
         }
     };
@@ -201,18 +215,27 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
 
     const updateAssignment = (key, patch) => {
         setFormError("");
-        setAssignments((current) =>
-            current.map((assignment) => (assignment.key === key ? { ...assignment, ...patch } : assignment)),
-        );
+        const target = assignmentsRef.current.find((assignment) => assignment.key === key);
+        if (!target) return;
+
+        Object.assign(target, patch);
+        // Only a date change affects grouping; title/description edits need
+        // no render at all (the native input already shows the new text).
+        if (patch.assignedDate !== undefined) {
+            // New array identity (same records) so `groups` recomputes and
+            // the edited row re-groups under the correct date section.
+            commitList(assignmentsRef.current.slice());
+        }
     };
 
     const removeAssignment = (key) => {
         setFormError("");
-        setAssignments((current) => current.filter((assignment) => assignment.key !== key));
+        commitList(assignmentsRef.current.filter((assignment) => assignment.key !== key));
     };
 
     const handleImport = async () => {
-        const errors = validateImportAssignments(assignments);
+        const draft = assignmentsRef.current;
+        const errors = validateImportAssignments(draft);
 
         if (errors.length) {
             setFormError(errors[0]);
@@ -244,230 +267,179 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
         }
     };
 
-    return (
-        <AnimatePresence>
-            {open ? (
-                <motion.div
-                    key="upload-backdrop"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.22, ease: EASE }}
-                    className="fixed inset-0 z-50 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md"
-                    onMouseDown={(event) => {
-                        if (event.target === event.currentTarget) {
-                            handleClose();
-                        }
-                    }}
+    // Enter motion is pure CSS (`.gpu-fade` / `.gpu-enter-scale` /
+    // `.gpu-enter`). No framer `layout`, no `height: auto` measurement —
+    // list structure changes re-render plain DOM only.
+    return open ? (
+        <div
+            className="gpu-fade fixed inset-0 z-50 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md"
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget) {
+                    handleClose();
+                }
+            }}
+        >
+            <div
+                className={`gpu-enter-scale relative flex max-h-[calc(100dvh-2rem)] w-full flex-col rounded-2xl border border-white/15 bg-white p-4 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:p-8 ${hasPreview ? "max-w-[680px]" : "max-w-[560px]"
+                    }`}
+            >
+                <button
+                    type="button"
+                    onClick={handleClose}
+                    className="absolute right-5 top-5 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                    aria-label="Close modal"
                 >
-                    <motion.div
-                        key="upload-panel"
-                        layout
-                        initial={{ opacity: 0, y: 18, scale: 0.97 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 12, scale: 0.98 }}
-                        transition={{ duration: 0.28, ease: EASE }}
-                        className={`relative flex max-h-[calc(100dvh-2rem)] w-full flex-col rounded-2xl border border-white/15 bg-white p-4 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:p-8 ${hasPreview ? "max-w-[680px]" : "max-w-[560px]"
-                            }`}
-                    >
+                    <CloseIcon />
+                </button>
+
+                <div className="shrink-0 pr-12">
+                    <h2 className="text-2xl font-black tracking-[-0.05em] text-slate-900 sm:text-4xl">
+                        Upload assignments
+                    </h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                        {hasPreview
+                            ? `Review and edit before importing into ${subjectName ?? "this subject"}.`
+                            : "Import multiple assignments from one formatted text file."}
+                    </p>
+                </div>
+
+                <div className="contain-scroll mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
+                    <div className="space-y-4">
+                        <div>
+                            <span className="mb-2 block text-[0.7rem] font-black uppercase tracking-[0.2em] text-slate-400">
+                                Text file
+                            </span>
+                            <label
+                                onDragEnter={(event) => { event.preventDefault(); setIsDragging(true); }}
+                                onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; setIsDragging(true); }}
+                                onDragLeave={(event) => {
+                                    if (!event.currentTarget.contains(event.relatedTarget)) setIsDragging(false);
+                                }}
+                                onDrop={handleDrop}
+                                className={`group grid min-h-52 cursor-pointer place-items-center rounded-2xl border-2 border-dashed p-5 text-center transition-gpu duration-200 ${isDragging ? "border-blue-500 bg-blue-50 text-blue-600 shadow-[0_0_0_5px_rgba(59,130,246,0.10)]" : "border-slate-300 bg-slate-50/70 text-slate-500 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600"}`}
+                            >
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".txt,.md,.csv,text/plain"
+                                    onChange={handleFileChange}
+                                    className="sr-only"
+                                />
+                                <span className="flex flex-col items-center">
+                                    <span className="drop-zone-icon grid size-20 place-items-center rounded-2xl bg-white shadow-[0_14px_35px_rgba(15,23,42,0.10)] transition-transform duration-200 group-hover:-translate-y-1">
+                                        <DropZoneIcon />
+                                    </span>
+                                    <strong className="font-poppins mt-4 text-base font-bold text-slate-800">
+                                        {isDragging ? "Release to upload" : "Drop your assignment file here"}
+                                    </strong>
+                                    <span className="mt-1.5 text-xs leading-5 text-slate-500">
+                                        or tap to browse · TXT, Markdown, or CSV
+                                    </span>
+                                </span>
+                            </label>
+                            {fileName ? (
+                                <p className="mt-2 text-xs font-semibold text-slate-400">
+                                    Parsed <span className="text-slate-600">{fileName}</span>
+                                    {hasPreview
+                                        ? ` — ${assignments.length} assignment${assignments.length === 1 ? "" : "s"} across ${groups.length} date${groups.length === 1 ? "" : "s"}.`
+                                        : ""}
+                                </p>
+                            ) : null}
+                        </div>
+
+                        {parseErrors.length ? (
+                            <div className="gpu-enter">
+                                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                                    <p className="flex items-center gap-2 text-sm font-black text-amber-800">
+                                        <WarningIcon />
+                                        {parseErrors.length} line{parseErrors.length === 1 ? "" : "s"} could not be read
+                                    </p>
+                                    <ul className="mt-2 space-y-1 text-xs leading-5 text-amber-700">
+                                        {parseErrors.slice(0, 5).map((error) => (
+                                            <li key={`${error.line}-${error.message}`}>{error.message}</li>
+                                        ))}
+                                        {parseErrors.length > 5 ? (
+                                            <li>...and {parseErrors.length - 5} more.</li>
+                                        ) : null}
+                                    </ul>
+                                </div>
+                            </div>
+                        ) : null}
+
+                        {hasPreview ? (
+                            <div className="gpu-enter space-y-4">
+                                {groups.map((group) => (
+                                    <section key={group.date} className="space-y-2.5">
+                                        <div className="flex items-baseline justify-between gap-3">
+                                            <p className="text-sm font-black tracking-[-0.02em] text-slate-800">
+                                                {group.label}
+                                            </p>
+                                            <p className="text-xs font-bold text-slate-400">
+                                                {group.assignments.length} assignment
+                                                {group.assignments.length === 1 ? "" : "s"}
+                                            </p>
+                                        </div>
+
+                                        {group.assignments.map((assignment) => (
+                                            <PreviewRow
+                                                key={assignment.key}
+                                                assignment={assignment}
+                                                index={rowIndexByKey.get(assignment.key) ?? 0}
+                                                onChange={(patch) => updateAssignment(assignment.key, patch)}
+                                                onRemove={() => removeAssignment(assignment.key)}
+                                            />
+                                        ))}
+                                    </section>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="gpu-enter rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                <p className="text-sm font-black text-slate-700">Required format</p>
+                                <pre className="mt-2.5 overflow-x-auto whitespace-pre text-[0.72rem] leading-5 text-slate-500">
+                                    {IMPORT_FORMAT_SAMPLE}
+                                </pre>
+                                <p className="mt-3 text-xs leading-5 text-slate-400">
+                                    Date sections may appear in any order. Imported assignments are validated
+                                    first, then the full subject list is ordered by date and the sequence in
+                                    this file.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="mt-6 shrink-0">
+                    {formError ? (
+                        <p className="gpu-enter mb-3 text-sm font-bold text-rose-600">
+                            {formError}
+                        </p>
+                    ) : null}
+
+                    <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
                         <button
                             type="button"
                             onClick={handleClose}
-                            className="absolute right-5 top-5 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                            aria-label="Close modal"
+                            disabled={isSubmitting}
+                            className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            <CloseIcon />
+                            Cancel
                         </button>
-
-                        <div className="shrink-0 pr-12">
-                            <h2 className="text-2xl font-black tracking-[-0.05em] text-slate-900 sm:text-4xl">
-                                Upload assignments
-                            </h2>
-                            <p className="mt-2 text-sm leading-6 text-slate-500">
-                                {hasPreview
-                                    ? `Review and edit before importing into ${subjectName ?? "this subject"}.`
-                                    : "Import multiple assignments from one formatted text file."}
-                            </p>
-                        </div>
-
-                        <div className="mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
-                            <motion.div layout="position" className="space-y-4">
-                                <div>
-                                    <span className="mb-2 block text-[0.7rem] font-black uppercase tracking-[0.2em] text-slate-400">
-                                        Text file
-                                    </span>
-                                    <label
-                                        onDragEnter={(event) => { event.preventDefault(); setIsDragging(true); }}
-                                        onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; setIsDragging(true); }}
-                                        onDragLeave={(event) => {
-                                            if (!event.currentTarget.contains(event.relatedTarget)) setIsDragging(false);
-                                        }}
-                                        onDrop={handleDrop}
-                                        className={`group grid min-h-52 cursor-pointer place-items-center rounded-2xl border-2 border-dashed p-5 text-center transition-all duration-200 ${isDragging ? "border-blue-500 bg-blue-50 text-blue-600 shadow-[0_0_0_5px_rgba(59,130,246,0.10)]" : "border-slate-300 bg-slate-50/70 text-slate-500 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600"}`}
-                                    >
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept=".txt,.md,.csv,text/plain"
-                                            onChange={handleFileChange}
-                                            className="sr-only"
-                                        />
-                                        <span className="flex flex-col items-center">
-                                            <span className="drop-zone-icon grid size-20 place-items-center rounded-2xl bg-white shadow-[0_14px_35px_rgba(15,23,42,0.10)] transition-transform duration-200 group-hover:-translate-y-1">
-                                                <DropZoneIcon />
-                                            </span>
-                                            <strong className="font-poppins mt-4 text-base font-bold text-slate-800">
-                                                {isDragging ? "Release to upload" : "Drop your assignment file here"}
-                                            </strong>
-                                            <span className="mt-1.5 text-xs leading-5 text-slate-500">
-                                                or tap to browse · TXT, Markdown, or CSV
-                                            </span>
-                                        </span>
-                                    </label>
-                                    {fileName ? (
-                                        <p className="mt-2 text-xs font-semibold text-slate-400">
-                                            Parsed <span className="text-slate-600">{fileName}</span>
-                                            {hasPreview
-                                                ? ` — ${assignments.length} assignment${assignments.length === 1 ? "" : "s"} across ${groups.length} date${groups.length === 1 ? "" : "s"}.`
-                                                : ""}
-                                        </p>
-                                    ) : null}
-                                </div>
-
-                                <AnimatePresence initial={false} mode="popLayout">
-                                    {parseErrors.length ? (
-                                        <motion.div
-                                            key="parse-errors"
-                                            layout
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: "auto" }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            transition={{ duration: 0.26, ease: EASE }}
-                                            className="overflow-hidden"
-                                        >
-                                            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                                                <p className="flex items-center gap-2 text-sm font-black text-amber-800">
-                                                    <WarningIcon />
-                                                    {parseErrors.length} line{parseErrors.length === 1 ? "" : "s"} could not be read
-                                                </p>
-                                                <ul className="mt-2 space-y-1 text-xs leading-5 text-amber-700">
-                                                    {parseErrors.slice(0, 5).map((error) => (
-                                                        <li key={`${error.line}-${error.message}`}>{error.message}</li>
-                                                    ))}
-                                                    {parseErrors.length > 5 ? (
-                                                        <li>...and {parseErrors.length - 5} more.</li>
-                                                    ) : null}
-                                                </ul>
-                                            </div>
-                                        </motion.div>
-                                    ) : null}
-
-                                    {hasPreview ? (
-                                        <motion.div
-                                            key="preview"
-                                            layout
-                                            initial={{ opacity: 0, y: 8 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -8 }}
-                                            transition={{ duration: 0.28, ease: EASE }}
-                                            className="space-y-4"
-                                        >
-                                            {groups.map((group) => (
-                                                <motion.section layout key={group.date} className="space-y-2.5">
-                                                    <div className="flex items-baseline justify-between gap-3">
-                                                        <p className="text-sm font-black tracking-[-0.02em] text-slate-800">
-                                                            {group.label}
-                                                        </p>
-                                                        <p className="text-xs font-bold text-slate-400">
-                                                            {group.assignments.length} assignment
-                                                            {group.assignments.length === 1 ? "" : "s"}
-                                                        </p>
-                                                    </div>
-
-                                                    <AnimatePresence initial={false} mode="popLayout">
-                                                        {group.assignments.map((assignment) => (
-                                                            <PreviewRow
-                                                                key={assignment.key}
-                                                                assignment={assignment}
-                                                                index={assignments.findIndex(
-                                                                    (item) => item.key === assignment.key,
-                                                                )}
-                                                                onChange={(patch) => updateAssignment(assignment.key, patch)}
-                                                                onRemove={() => removeAssignment(assignment.key)}
-                                                            />
-                                                        ))}
-                                                    </AnimatePresence>
-                                                </motion.section>
-                                            ))}
-                                        </motion.div>
-                                    ) : (
-                                        <motion.div
-                                            key="format"
-                                            layout
-                                            initial={{ opacity: 0, y: 8 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -8 }}
-                                            transition={{ duration: 0.28, ease: EASE }}
-                                            className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
-                                        >
-                                            <p className="text-sm font-black text-slate-700">Required format</p>
-                                            <pre className="mt-2.5 overflow-x-auto whitespace-pre text-[0.72rem] leading-5 text-slate-500">
-                                                {IMPORT_FORMAT_SAMPLE}
-                                            </pre>
-                                            <p className="mt-3 text-xs leading-5 text-slate-400">
-                                                Date sections may appear in any order. Imported assignments are validated
-                                                first, then the full subject list is ordered by date and the sequence in
-                                                this file.
-                                            </p>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </motion.div>
-                        </div>
-
-                        <motion.div layout="position" className="mt-6 shrink-0">
-                            <AnimatePresence initial={false}>
-                                {formError ? (
-                                    <motion.p
-                                        key="form-error"
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.22, ease: EASE }}
-                                        className="mb-3 overflow-hidden text-sm font-bold text-rose-600"
-                                    >
-                                        {formError}
-                                    </motion.p>
-                                ) : null}
-                            </AnimatePresence>
-
-                            <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-                                <button
-                                    type="button"
-                                    onClick={handleClose}
-                                    disabled={isSubmitting}
-                                    className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleImport}
-                                    disabled={!hasPreview || isSubmitting}
-                                    className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-[0_18px_35px_rgba(37,99,235,0.26)] transition-all hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-blue-300 disabled:shadow-none"
-                                >
-                                    <UploadIcon />
-                                    {isSubmitting
-                                        ? "Importing..."
-                                        : hasPreview
-                                            ? `Import ${assignments.length} assignment${assignments.length === 1 ? "" : "s"}`
-                                            : "Import assignments"}
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                </motion.div>
-            ) : null}
-        </AnimatePresence>
-    );
+                        <button
+                            type="button"
+                            onClick={handleImport}
+                            disabled={!hasPreview || isSubmitting}
+                            className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-[0_18px_35px_rgba(37,99,235,0.26)] transition-gpu hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-blue-300 disabled:shadow-none"
+                        >
+                            <UploadIcon />
+                            {isSubmitting
+                                ? "Importing..."
+                                : hasPreview
+                                    ? `Import ${assignments.length} assignment${assignments.length === 1 ? "" : "s"}`
+                                    : "Import assignments"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    ) : null;
 }

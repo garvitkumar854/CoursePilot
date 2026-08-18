@@ -3,15 +3,13 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { AnimatePresence, Reorder, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { Reorder } from "framer-motion";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useAdmin } from "@/components/admin/admin-provider";
 import AssignmentRow from "@/components/subjects/assignment-row";
 
 // Edit/info/delete code and its calendar are loaded only after a menu action.
 const AssignmentDialogs = dynamic(() => import("@/components/subjects/assignment-dialogs"), { ssr: false });
-
-const EASE = [0.22, 1, 0.36, 1];
 
 function SearchIcon() {
     return (
@@ -23,16 +21,16 @@ function SearchIcon() {
 }
 
 function ChevronGlyph({ open }) {
+    // Tailwind v4 `rotate-180` uses the standalone `rotate` property —
+    // compositor-only, no JS animation runtime.
     return (
-        <motion.svg
+        <svg
             viewBox="0 0 24 24"
             aria-hidden="true"
-            className="h-5 w-5 stroke-2"
-            animate={{ rotate: open ? 180 : 0 }}
-            transition={{ duration: 0.3, ease: EASE }}
+            className={`h-5 w-5 stroke-2 transition-transform duration-300 ease-out ${open ? "rotate-180" : "rotate-0"}`}
         >
             <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-        </motion.svg>
+        </svg>
     );
 }
 
@@ -63,10 +61,11 @@ function GroupCard({
     }
 
     return (
-        <motion.section
-            layout={!isReordering}
-            transition={{ layout: { duration: 0.2, ease: EASE } }}
-            className="overflow-visible rounded-2xl border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.06)] sm:rounded-3xl"
+        // `.loop-item` gives offscreen groups content-visibility containment so
+        // long subject pages only lay out the visible portion. It is disabled
+        // while reordering: drag-and-drop needs every row measured.
+        <section
+            className={`${isReordering ? "" : "loop-item"} overflow-visible rounded-2xl border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.06)] sm:rounded-3xl`}
         >
             <button
                 type="button"
@@ -87,43 +86,37 @@ function GroupCard({
                 </span>
             </button>
 
-            <AnimatePresence initial={false}>
-                {isOpen ? (
-                    <motion.div
-                        key="group-body"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{
-                            height: { duration: 0.34, ease: EASE },
-                            opacity: { duration: 0.22, ease: "easeOut" },
-                        }}
-                        style={{ overflow: isReordering ? "visible" : "hidden" }}
+            {/* Expand/collapse is a one-shot compositor animation (opacity +
+                translate3d). No height interpolation: closing a group no
+                longer runs a 340ms forced-reflow loop. */}
+            {isOpen ? (
+                <div
+                    className={isReordering ? "" : "gpu-enter"}
+                    style={{ overflow: isReordering ? "visible" : "hidden" }}
+                >
+                    <Reorder.Group
+                        axis="y"
+                        as="ul"
+                        values={filteredAssignments}
+                        onReorder={(next) => onReorderGroup(group.label, next)}
+                        className="relative"
                     >
-                        <Reorder.Group
-                            axis="y"
-                            as="ul"
-                            values={filteredAssignments}
-                            onReorder={(next) => onReorderGroup(group.label, next)}
-                            className="relative"
-                        >
-                            {filteredAssignments.map((assignment, assignmentIndex) => (
-                                <AssignmentRow
-                                    key={assignment.id}
-                                    assignment={assignment}
-                                    index={assignmentIndex}
-                                    isAdmin={isAdmin}
-                                    isReordering={isReordering}
-                                    onEdit={onEdit}
-                                    onInfo={onInfo}
-                                    onDelete={onDelete}
-                                />
-                            ))}
-                        </Reorder.Group>
-                    </motion.div>
-                ) : null}
-            </AnimatePresence>
-        </motion.section>
+                        {filteredAssignments.map((assignment, assignmentIndex) => (
+                            <AssignmentRow
+                                key={assignment.id}
+                                assignment={assignment}
+                                index={assignmentIndex}
+                                isAdmin={isAdmin}
+                                isReordering={isReordering}
+                                onEdit={onEdit}
+                                onInfo={onInfo}
+                                onDelete={onDelete}
+                            />
+                        ))}
+                    </Reorder.Group>
+                </div>
+            ) : null}
+        </section>
     );
 }
 
@@ -140,7 +133,13 @@ export default function SubjectDetailClient({ subject, slug }) {
         reorderAssignments,
     } = useAdmin();
 
+    // The search input is uncontrolled: keystrokes write straight into the
+    // native node (no React round-trip for the character itself). `query`
+    // only holds the filter string, and the list re-renders against the
+    // *deferred* copy so typing never blocks on group filtering.
+    const searchRef = useRef(null);
     const [query, setQuery] = useState("");
+    const deferredQuery = useDeferredValue(query);
     const [isCopied, setIsCopied] = useState(false);
     const [openGroups, setOpenGroups] = useState({});
     const [isReordering, setIsReordering] = useState(false);
@@ -181,7 +180,12 @@ export default function SubjectDetailClient({ subject, slug }) {
             setOpenGroups((current) => ({ ...current, [targetGroup.label]: true }));
             scrollTimer = window.setTimeout(() => {
                 const element = document.getElementById(`assignment-${targetAssignmentId}`);
-                element?.scrollIntoView({ behavior: "smooth", block: "center" });
+                if (element) {
+                    // Force-render the row before measuring the scroll target:
+                    // its ancestor group may be content-visibility-skipped.
+                    element.getBoundingClientRect();
+                    element.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
             }, 380);
         }, 0);
 
@@ -200,6 +204,10 @@ export default function SubjectDetailClient({ subject, slug }) {
         setDraftGroups((serverSubject.dateGroups ?? []).map((group) => ({ ...group, assignments: [...group.assignments] })));
         setIsReordering(true);
         setQuery("");
+        // The input is uncontrolled, so clear its node explicitly too.
+        if (searchRef.current) {
+            searchRef.current.value = "";
+        }
 
         // Every group must be visible to drag between positions.
         const allOpen = {};
@@ -327,41 +335,31 @@ export default function SubjectDetailClient({ subject, slug }) {
                                     onClick={handleCopySubject}
                                     aria-label={isCopied ? "Assignment list copied" : "Copy assignment list"}
                                     title={isCopied ? "Copied!" : "Copy all assignments"}
-                                    className={`inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border transition-all duration-300 active:scale-90 ${isCopied
+                                    className={`inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border transition-gpu duration-300 active:scale-90 ${isCopied
                                         ? "border-emerald-300 bg-emerald-50 text-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                                         : "border-slate-200/90 bg-white text-slate-600 shadow-sm hover:bg-slate-50 hover:text-blue-600"
                                         }`}
                                 >
-                                    <AnimatePresence mode="wait" initial={false}>
-                                        {isCopied ? (
-                                            <motion.svg
-                                                key="copied"
-                                                viewBox="0 0 24 24"
-                                                aria-hidden="true"
-                                                className="h-4.5 w-4.5 stroke-[2.6]"
-                                                initial={{ scale: 0.5, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                exit={{ scale: 0.5, opacity: 0 }}
-                                                transition={{ type: "spring", stiffness: 420, damping: 22 }}
-                                            >
-                                                <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-                                            </motion.svg>
-                                        ) : (
-                                            <motion.svg
-                                                key="copy"
-                                                viewBox="0 0 24 24"
-                                                aria-hidden="true"
-                                                className="h-4.5 w-4.5 stroke-[1.8]"
-                                                initial={{ scale: 0.7, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                exit={{ scale: 0.7, opacity: 0 }}
-                                                transition={{ duration: 0.18, ease: EASE }}
-                                            >
-                                                <rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" />
-                                                <path d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" />
-                                            </motion.svg>
-                                        )}
-                                    </AnimatePresence>
+                                    {isCopied ? (
+                                        <svg
+                                            key="copied"
+                                            viewBox="0 0 24 24"
+                                            aria-hidden="true"
+                                            className="icon-swap h-4.5 w-4.5 stroke-[2.6]"
+                                        >
+                                            <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    ) : (
+                                        <svg
+                                            key="copy"
+                                            viewBox="0 0 24 24"
+                                            aria-hidden="true"
+                                            className="icon-swap h-4.5 w-4.5 stroke-[1.8]"
+                                        >
+                                            <rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" />
+                                            <path d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" />
+                                        </svg>
+                                    )}
                                 </button>
                             </div>
                             <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[0.72rem] font-semibold text-slate-500 shadow-sm sm:px-4 sm:py-2 sm:text-sm">
@@ -378,8 +376,9 @@ export default function SubjectDetailClient({ subject, slug }) {
                     <div className="flex items-center gap-3 text-slate-400">
                         <SearchIcon />
                         <input
-                            value={query}
-                            onChange={(event) => setQuery(event.target.value)}
+                            ref={searchRef}
+                            defaultValue=""
+                            onInput={(event) => setQuery(event.currentTarget.value)}
                             disabled={isReordering}
                             placeholder={isReordering ? "Search paused while reordering" : "Search assignments..."}
                             className="w-full bg-transparent text-[0.92rem] font-semibold text-slate-700 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed sm:text-[0.98rem]"
@@ -415,7 +414,7 @@ export default function SubjectDetailClient({ subject, slug }) {
                                         <button
                                             type="button"
                                             onClick={startReordering}
-                                            className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-slate-900/10 bg-white px-4 text-sm font-black text-slate-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-900/20 hover:bg-slate-50 active:scale-95 sm:flex-none sm:px-5"
+                                            className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-slate-900/10 bg-white px-4 text-sm font-black text-slate-700 shadow-sm transition-gpu hover:-translate-y-0.5 hover:border-slate-900/20 hover:bg-slate-50 active:scale-95 sm:flex-none sm:px-5"
                                         >
                                             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
                                                 <g fill="currentColor">
@@ -442,7 +441,7 @@ export default function SubjectDetailClient({ subject, slug }) {
                                     <button
                                         type="button"
                                         onClick={() => openUploadAssignments(serverSubject.slug)}
-                                        className="group inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-blue-600 bg-transparent px-4 text-sm font-black text-blue-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-600 hover:text-white hover:shadow-[0_14px_30px_rgba(37,99,235,0.22)] active:scale-95 sm:w-auto sm:px-5"
+                                        className="group inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-blue-600 bg-transparent px-4 text-sm font-black text-blue-600 transition-gpu duration-200 hover:-translate-y-0.5 hover:bg-blue-600 hover:text-white hover:shadow-[0_14px_30px_rgba(37,99,235,0.22)] active:scale-95 sm:w-auto sm:px-5"
                                     >
                                         <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 stroke-[2.2] transition-transform duration-200 group-hover:-translate-y-0.5">
                                             <path
@@ -459,35 +458,21 @@ export default function SubjectDetailClient({ subject, slug }) {
                             )}
                         </div>
 
-                        <AnimatePresence initial={false}>
-                            {isReordering ? (
-                                <motion.p
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: "auto" }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    transition={{ duration: 0.22, ease: EASE }}
-                                    className="overflow-hidden rounded-2xl bg-slate-900/90 px-4 py-2.5 text-center text-xs font-bold text-white sm:text-right"
-                                >
-                                    Drag the handles to rearrange, then press Save order to apply every change at once.
-                                </motion.p>
-                            ) : null}
+                        {isReordering ? (
+                            <p className="gpu-enter rounded-2xl bg-slate-900/90 px-4 py-2.5 text-center text-xs font-bold text-white sm:text-right">
+                                Drag the handles to rearrange, then press Save order to apply every change at once.
+                            </p>
+                        ) : null}
 
-                            {actionError ? (
-                                <motion.p
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: "auto" }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    transition={{ duration: 0.22, ease: EASE }}
-                                    className="overflow-hidden text-center text-sm font-bold text-rose-600 sm:text-right"
-                                >
-                                    {actionError}
-                                </motion.p>
-                            ) : null}
-                        </AnimatePresence>
+                        {actionError ? (
+                            <p className="gpu-enter text-center text-sm font-bold text-rose-600 sm:text-right">
+                                {actionError}
+                            </p>
+                        ) : null}
                     </section>
                 ) : null}
 
-                <motion.section layout className="space-y-3 pb-8">
+                <section className="space-y-3 pb-8">
                     {dateGroups.length ? (
                         dateGroups.map((group, index) => (
                             <GroupCard
@@ -495,7 +480,7 @@ export default function SubjectDetailClient({ subject, slug }) {
                                 group={group}
                                 isOpen={openGroups[group.label] ?? index === 0}
                                 onToggle={() => handleToggleGroup(group.label)}
-                                query={query}
+                                query={deferredQuery}
                                 isAdmin={isAdmin}
                                 isReordering={isReordering}
                                 onReorderGroup={handleReorderGroup}
@@ -514,7 +499,7 @@ export default function SubjectDetailClient({ subject, slug }) {
                             </p>
                         </div>
                     )}
-                </motion.section>
+                </section>
             </div>
 
             {dialog ? (

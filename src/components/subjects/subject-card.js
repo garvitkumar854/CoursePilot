@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { useAdmin } from "@/components/admin/admin-provider";
 import DeleteSubjectDialog from "@/components/delete-subject-dialog";
@@ -88,9 +87,19 @@ export default function SubjectCard({ subject, rank }) {
 
     return (
         <>
-        <article className="group relative h-full overflow-hidden rounded-[24px] border border-white/70 bg-(--panel) p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1 sm:rounded-[28px] sm:p-6">
+        {/* `.loop-item` applies content-visibility: auto + intrinsic-size
+            containment so offscreen cards cost nothing to keep in the loop. */}
+        <article className="loop-item group relative h-full overflow-hidden rounded-[24px] border border-white/70 bg-(--panel) p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1 sm:rounded-[28px] sm:p-6">
+            {/* Accent bar: the hover expansion is now a transform scaleX on a
+                full-width layer (opacity + transform only). The static pill
+                underneath never animates geometry, so hovering a card cannot
+                force layout on the dashboard grid. */}
             <div
-                className="absolute left-1/2 top-0 h-1.5 w-20 -translate-x-1/2 rounded-b-full transition-all duration-300 ease-out group-hover:w-full group-hover:rounded-none group-hover:h-2 group-hover:shadow-[0_4px_15px_rgba(15,23,42,0.15)]"
+                className="absolute left-1/2 top-0 h-1.5 w-20 -translate-x-1/2 rounded-b-full"
+                style={{ backgroundColor: subject.accentColor }}
+            />
+            <div
+                className="absolute inset-x-0 top-0 h-2 origin-center scale-x-[0.21] rounded-none opacity-0 transition-gpu duration-300 ease-out group-hover:scale-x-100 group-hover:opacity-100 group-hover:shadow-[0_4px_15px_rgba(15,23,42,0.15)]"
                 style={{ backgroundColor: subject.accentColor }}
             />
 
@@ -163,7 +172,7 @@ export default function SubjectCard({ subject, rank }) {
                     <button
                         type="button"
                         onClick={handleCopy}
-                        className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition-all duration-300 active:scale-95 cursor-pointer ${
+                        className={`relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-2xl border transition-gpu duration-300 active:scale-95 ${
                             isCopied
                                 ? "border-emerald-300 bg-emerald-50 text-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.22)]"
                                 : "border-slate-200/90 bg-white text-slate-600 shadow-sm hover:border-slate-300 hover:bg-slate-50 hover:text-blue-600"
@@ -171,49 +180,29 @@ export default function SubjectCard({ subject, rank }) {
                         title={isCopied ? "Copied!" : "Copy assignments"}
                         aria-label="Copy assignments"
                     >
-                        <AnimatePresence mode="wait">
-                            {isCopied ? (
-                                <motion.div
-                                    key="check"
-                                    initial={{ scale: 0, rotate: -45, opacity: 0 }}
-                                    animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                                    exit={{ scale: 0, rotate: 45, opacity: 0 }}
-                                    transition={{ type: "spring", stiffness: 450, damping: 22 }}
-                                >
-                                    <CheckGlyph />
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="copy"
-                                    initial={{ scale: 0.8, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    exit={{ scale: 0.8, opacity: 0 }}
-                                    transition={{ duration: 0.15 }}
-                                >
-                                    <CopyGlyph />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        {isCopied ? (
+                            <span key="check" className="icon-swap">
+                                <CheckGlyph />
+                            </span>
+                        ) : (
+                            <span key="copy" className="icon-swap">
+                                <CopyGlyph />
+                            </span>
+                        )}
 
-                        <AnimatePresence>
-                            {isCopied && (
-                                <motion.span
-                                    initial={{ opacity: 0, y: 6, scale: 0.9 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: -4, scale: 0.9 }}
-                                    transition={{ duration: 0.18 }}
-                                    className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-emerald-600 px-2.5 py-1 text-[0.7rem] font-black text-white shadow-lg pointer-events-none"
-                                >
-                                    Copied!
-                                </motion.span>
-                            )}
-                        </AnimatePresence>
+                        {isCopied ? (
+                            <span
+                                className="gpu-enter absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-emerald-600 px-2.5 py-1 text-[0.7rem] font-black text-white shadow-lg pointer-events-none"
+                            >
+                                Copied!
+                            </span>
+                        ) : null}
                     </button>
 
                     <Link
                         href={`/subjects/${subject.slug}`}
                         aria-label={`Open ${subject.name} assignments`}
-                        className="subject-view-button group/link inline-flex h-11 items-center gap-2.5 rounded-2xl border px-3 pl-4 text-xs font-black tracking-[-0.01em] shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:scale-95 sm:text-sm"
+                        className="subject-view-button group/link inline-flex h-11 items-center gap-2.5 rounded-2xl border px-3 pl-4 text-xs font-black tracking-[-0.01em] shadow-sm transition-gpu duration-300 hover:-translate-y-0.5 active:scale-95 sm:text-sm"
                         style={{
                             "--subject-accent": subject.accentColor,
                             "--subject-tint": `${subject.accentColor}18`,

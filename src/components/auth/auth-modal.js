@@ -1,10 +1,8 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { readClientCookie, removeClientCookie, writeClientCookie } from "@/lib/client-cookie";
 
-const EASE = [0.22, 1, 0.36, 1];
 const LOGIN_PREFERENCE_KEY = "coursepilot-login-preferences";
 const REMEMBER_ME_COOKIE = "coursepilot-remember-me";
 
@@ -63,11 +61,13 @@ export default function AuthModal({
     title = "Welcome back",
     subtitle = "Sign in securely to manage subjects and assignments.",
 }) {
+    // Text inputs are fully uncontrolled: keystrokes live inside the native
+    // DOM node and are read from refs once, on submit. No React render runs
+    // per character.
     const identifierRef = useRef(null);
+    const passwordRef = useRef(null);
+    const rememberRef = useRef(null);
     const [defaults] = useState(() => readLoginPreferences(initialIdentifier));
-    const [identifier, setIdentifier] = useState(defaults.identifier);
-    const [password, setPassword] = useState("");
-    const [rememberMe, setRememberMe] = useState(defaults.rememberMe);
     const [showPassword, setShowPassword] = useState(false);
     const [capsLock, setCapsLock] = useState(false);
     const [error, setError] = useState("");
@@ -94,14 +94,20 @@ export default function AuthModal({
 
     const handleClose = () => {
         if (busy) return;
-        setPassword("");
+        // Uncontrolled inputs own their value; clear the credential node
+        // directly instead of routing it through React state.
+        if (passwordRef.current) {
+            passwordRef.current.value = "";
+        }
         setError("");
         onClose();
     };
 
     const submit = async (event) => {
         event.preventDefault();
-        const cleanIdentifier = identifier.trim();
+        const cleanIdentifier = (identifierRef.current?.value ?? "").trim();
+        const password = passwordRef.current?.value ?? "";
+        const rememberMe = rememberRef.current?.checked ?? false;
 
         if (!cleanIdentifier) {
             setError("Enter your admin email or username.");
@@ -134,7 +140,9 @@ export default function AuthModal({
                 removeClientCookie(REMEMBER_ME_COOKIE);
             }
 
-            setPassword("");
+            if (passwordRef.current) {
+                passwordRef.current.value = "";
+            }
             setBusy(false);
             onClose();
         } catch {
@@ -143,78 +151,71 @@ export default function AuthModal({
         }
     };
 
-    return (
-        <AnimatePresence>
-            {open ? (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2, ease: EASE }}
-                    className="fixed inset-0 z-60 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md"
-                    onMouseDown={(event) => {
-                        if (event.target === event.currentTarget) handleClose();
-                    }}
-                >
-                    <motion.div
-                        initial={{ opacity: 0, y: 24, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 16, scale: 0.98 }}
-                        transition={{ duration: 0.28, ease: EASE }}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="admin-login-title"
-                        className="relative max-h-[calc(100dvh-2rem)] w-full max-w-[460px] overflow-y-auto rounded-2xl border border-white/15 bg-white p-4.5 shadow-[0_40px_110px_rgba(15,23,42,0.28)] sm:p-8"
-                    >
-                        <button type="button" onClick={handleClose} disabled={busy} className="absolute right-3.5 top-3.5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 sm:right-5 sm:top-5 sm:h-10 sm:w-10" aria-label="Close sign in">
-                            <CloseIcon />
-                        </button>
+    // Enter/exit motion is pure CSS (`.gpu-fade` / `.gpu-enter-scale` in
+    // globals.css): opacity + translate3d only, zero main-thread layout work.
+    return open ? (
+        <div
+            className="gpu-fade fixed inset-0 z-60 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md"
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget) handleClose();
+            }}
+        >
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="admin-login-title"
+                className="gpu-enter-scale contain-scroll relative max-h-[calc(100dvh-2rem)] w-full max-w-[460px] overflow-y-auto rounded-2xl border border-white/15 bg-white p-4.5 shadow-[0_40px_110px_rgba(15,23,42,0.28)] sm:p-8"
+            >
+                <button type="button" onClick={handleClose} disabled={busy} className="absolute right-3.5 top-3.5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 sm:right-5 sm:top-5 sm:h-10 sm:w-10" aria-label="Close sign in">
+                    <CloseIcon />
+                </button>
 
-                        <div className="pr-11">
-                            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_12px_28px_rgba(37,99,235,0.26)] sm:h-12 sm:w-12"><ShieldIcon /></div>
-                            <p className="text-[0.62rem] font-black uppercase tracking-[0.26em] text-blue-600 sm:text-xs">Admin access</p>
-                            <h2 id="admin-login-title" className="mt-1.5 text-[1.8rem] font-black tracking-[-0.055em] text-slate-900 sm:mt-2 sm:text-4xl">{title}</h2>
-                            <p className="mt-2 max-w-md text-[0.8rem] leading-5.5 text-slate-500 sm:mt-3 sm:text-sm sm:leading-6">{subtitle}</p>
-                        </div>
+                <div className="pr-11">
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_12px_28px_rgba(37,99,235,0.26)] sm:h-12 sm:w-12"><ShieldIcon /></div>
+                    <p className="text-[0.62rem] font-black uppercase tracking-[0.26em] text-blue-600 sm:text-xs">Admin access</p>
+                    <h2 id="admin-login-title" className="mt-1.5 text-[1.8rem] font-black tracking-[-0.055em] text-slate-900 sm:mt-2 sm:text-4xl">{title}</h2>
+                    <p className="mt-2 max-w-md text-[0.8rem] leading-5.5 text-slate-500 sm:mt-3 sm:text-sm sm:leading-6">{subtitle}</p>
+                </div>
 
-                        <form onSubmit={submit} className="mt-5 space-y-4 sm:mt-6 sm:space-y-5" noValidate>
-                            <label className="block">
-                                <span className="mb-1.5 block text-xs font-black text-slate-700 sm:mb-2 sm:text-sm">Email or username</span>
-                                <span className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-400 shadow-sm transition-shadow focus-within:border-blue-300 focus-within:text-blue-500 focus-within:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:px-4 sm:py-3">
-                                    <UserIcon />
-                                    <input ref={identifierRef} type="text" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="name@example.com" autoComplete="username" autoCapitalize="none" spellCheck="false" disabled={busy} className="min-w-0 w-full bg-transparent text-[0.88rem] font-semibold text-slate-800 outline-none placeholder:text-slate-400 disabled:opacity-70 sm:text-[0.98rem]" />
-                                </span>
-                            </label>
+                <form onSubmit={submit} className="mt-5 space-y-4 sm:mt-6 sm:space-y-5" noValidate>
+                    <label className="block">
+                        <span className="mb-1.5 block text-xs font-black text-slate-700 sm:mb-2 sm:text-sm">Email or username</span>
+                        <span className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-400 shadow-sm transition-shadow focus-within:border-blue-300 focus-within:text-blue-500 focus-within:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:px-4 sm:py-3">
+                            <UserIcon />
+                            <input ref={identifierRef} type="text" name="identifier" defaultValue={defaults.identifier} placeholder="name@example.com" autoComplete="username" autoCapitalize="none" spellCheck="false" disabled={busy} className="min-w-0 w-full bg-transparent text-[0.88rem] font-semibold text-slate-800 outline-none placeholder:text-slate-400 disabled:opacity-70 sm:text-[0.98rem]" />
+                        </span>
+                    </label>
 
-                            <label className="block">
-                                <span className="mb-1.5 block text-xs font-black text-slate-700 sm:mb-2 sm:text-sm">Password</span>
-                                <span className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-400 shadow-sm transition-shadow focus-within:border-blue-300 focus-within:text-blue-500 focus-within:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:px-4 sm:py-3">
-                                    <LockIcon />
-                                    <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} onKeyUp={(event) => setCapsLock(event.getModifierState("CapsLock"))} placeholder="Enter your password" autoComplete="current-password" disabled={busy} className="min-w-0 w-full bg-transparent text-[0.88rem] font-semibold text-slate-800 outline-none placeholder:text-slate-400 disabled:opacity-70 sm:text-[0.98rem]" />
-                                    <button type="button" onClick={() => setShowPassword((current) => !current)} disabled={busy} className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>
-                                        <EyeIcon visible={showPassword} />
-                                    </button>
-                                </span>
-                                {capsLock ? <span className="mt-1.5 block text-xs font-bold text-amber-600">Caps Lock is on</span> : null}
-                            </label>
-
-                            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-3 transition-colors hover:bg-slate-50">
-                                <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} disabled={busy} className="peer sr-only" />
-                                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 border-slate-300 bg-white text-white transition-colors peer-checked:border-blue-600 peer-checked:bg-blue-600 peer-focus-visible:ring-4 peer-focus-visible:ring-blue-100">
-                                    {rememberMe ? <svg viewBox="0 0 16 16" aria-hidden="true" className="h-3 w-3 stroke-[2.5]"><path d="m3 8 3 3 7-7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /></svg> : null}
-                                </span>
-                                <span><span className="block text-xs font-black text-slate-700 sm:text-sm">Remember me on this device</span><span className="mt-0.5 block text-[0.68rem] leading-4.5 text-slate-500 sm:text-xs">Keeps your secure admin session for 30 days. Otherwise it ends when the browser session closes.</span></span>
-                            </label>
-
-                            {error ? <p role="alert" className="rounded-xl border border-rose-100 bg-rose-50 px-3.5 py-2.5 text-xs font-bold leading-5 text-rose-600 sm:text-sm">{error}</p> : null}
-
-                            <button type="submit" disabled={busy} className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-[0.88rem] font-black text-white shadow-[0_18px_35px_rgba(37,99,235,0.26)] transition-all hover:bg-blue-700 active:scale-[0.99] disabled:cursor-wait disabled:bg-blue-400 sm:py-3.5 sm:text-[0.98rem]">
-                                {busy ? <><Spinner />Signing in securely...</> : "Sign in to CoursePilot"}
+                    <label className="block">
+                        <span className="mb-1.5 block text-xs font-black text-slate-700 sm:mb-2 sm:text-sm">Password</span>
+                        <span className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-400 shadow-sm transition-shadow focus-within:border-blue-300 focus-within:text-blue-500 focus-within:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:px-4 sm:py-3">
+                            <LockIcon />
+                            {/* `onKeyUp` only flips the Caps Lock hint; React bails
+                                out when the modifier state is unchanged, so no
+                                render is produced for ordinary keystrokes. */}
+                            <input ref={passwordRef} type={showPassword ? "text" : "password"} name="password" defaultValue="" onKeyUp={(event) => setCapsLock(event.getModifierState("CapsLock"))} placeholder="Enter your password" autoComplete="current-password" disabled={busy} className="min-w-0 w-full bg-transparent text-[0.88rem] font-semibold text-slate-800 outline-none placeholder:text-slate-400 disabled:opacity-70 sm:text-[0.98rem]" />
+                            <button type="button" onClick={() => setShowPassword((current) => !current)} disabled={busy} className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>
+                                <EyeIcon visible={showPassword} />
                             </button>
-                        </form>
-                    </motion.div>
-                </motion.div>
-            ) : null}
-        </AnimatePresence>
-    );
+                        </span>
+                        {capsLock ? <span className="mt-1.5 block text-xs font-bold text-amber-600">Caps Lock is on</span> : null}
+                    </label>
+
+                    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-3 transition-colors hover:bg-slate-50">
+                        <input ref={rememberRef} type="checkbox" name="rememberMe" defaultChecked={defaults.rememberMe} disabled={busy} className="peer sr-only" />
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 border-slate-300 bg-white text-white transition-gpu peer-checked:border-blue-600 peer-checked:bg-blue-600 peer-focus-visible:ring-4 peer-focus-visible:ring-blue-100 [&_svg]:opacity-0 peer-checked:[&_svg]:opacity-100">
+                            <svg viewBox="0 0 16 16" aria-hidden="true" className="h-3 w-3 stroke-[2.5]"><path d="m3 8 3 3 7-7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </span>
+                        <span><span className="block text-xs font-black text-slate-700 sm:text-sm">Remember me on this device</span><span className="mt-0.5 block text-[0.68rem] leading-4.5 text-slate-500 sm:text-xs">Keeps your secure admin session for 30 days. Otherwise it ends when the browser session closes.</span></span>
+                    </label>
+
+                    {error ? <p role="alert" className="rounded-xl border border-rose-100 bg-rose-50 px-3.5 py-2.5 text-xs font-bold leading-5 text-rose-600 sm:text-sm">{error}</p> : null}
+
+                    <button type="submit" disabled={busy} className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-[0.88rem] font-black text-white shadow-[0_18px_35px_rgba(37,99,235,0.26)] transition-gpu hover:bg-blue-700 active:scale-[0.99] disabled:cursor-wait disabled:bg-blue-400 sm:py-3.5 sm:text-[0.98rem]">
+                        {busy ? <><Spinner />Signing in securely...</> : "Sign in to CoursePilot"}
+                    </button>
+                </form>
+            </div>
+        </div>
+    ) : null;
 }
