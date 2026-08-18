@@ -1,35 +1,43 @@
-import localFont from "next/font/local";
-import { getCourseCatalog } from "@/lib/course-db";
+import type { Metadata, Viewport } from "next";
+import { Inter, Poppins } from "next/font/google";
+import type { ReactNode } from "react";
+
 import { AdminProvider } from "@/components/admin/admin-provider";
 import Navbar from "@/components/layout/navbar";
-import PwaRegister from "@/components/pwa/pwa-register";
+import { getCourseCatalog } from "@/lib/course-db";
+
 import "./globals.css";
+import { Providers } from "./providers";
 
 export const dynamic = "force-dynamic";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://coursepilot.app";
 
-const displayFont = localFont({
-  src: "./fonts/coursepilot-display.woff2",
-  variable: "--font-sora",
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
   display: "swap",
   preload: true,
+  adjustFontFallback: true,
 });
 
-const bodyFont = localFont({
-  src: "./fonts/coursepilot-body.woff2",
-  variable: "--font-manrope",
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["600", "700", "800", "900"],
+  variable: "--font-poppins",
   display: "swap",
   preload: true,
+  adjustFontFallback: true,
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
     default: "CoursePilot — Assignment Tracker",
     template: "%s | CoursePilot",
   },
-  description: "Track assignments across every subject with a fast, responsive and installable coursework dashboard.",
+  description:
+    "Track assignments across every subject with a fast, responsive and installable coursework dashboard.",
   applicationName: "CoursePilot",
   keywords: [
     "assignment tracker",
@@ -43,13 +51,19 @@ export const metadata = {
   publisher: "CoursePilot",
   category: "education",
   alternates: { canonical: "/" },
-  manifest: "/manifest.webmanifest",
+  manifest: "/manifest.json",
   icons: {
     icon: [
       { url: "/branding/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/branding/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/branding/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [
+      {
+        url: "/branding/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
   },
   appleWebApp: {
     capable: true,
@@ -67,13 +81,22 @@ export const metadata = {
     url: "/",
     siteName: "CoursePilot",
     title: "CoursePilot — Assignment Tracker",
-    description: "A modern, installable dashboard for subjects, assignments and coursework.",
-    images: [{ url: "/branding/icon-512.png", width: 512, height: 512, alt: "CoursePilot" }],
+    description:
+      "A modern, installable dashboard for subjects, assignments and coursework.",
+    images: [
+      {
+        url: "/branding/icon-512.png",
+        width: 512,
+        height: 512,
+        alt: "CoursePilot",
+      },
+    ],
   },
   twitter: {
     card: "summary",
     title: "CoursePilot — Assignment Tracker",
-    description: "A modern, installable dashboard for subjects, assignments and coursework.",
+    description:
+      "A modern, installable dashboard for subjects, assignments and coursework.",
     images: ["/branding/icon-512.png"],
   },
   robots: {
@@ -86,9 +109,12 @@ export const metadata = {
       "max-snippet": -1,
     },
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -100,17 +126,21 @@ export const viewport = {
   ],
 };
 
+// This executes synchronously before React and before the first paint, so the
+// server HTML is displayed with the persisted theme and never flashes.
 const themeScript = `
 (function () {
+  var root = document.documentElement;
   try {
     var saved = localStorage.getItem('coursepilot-theme');
-    var theme = saved === 'dark' || saved === 'light'
-      ? saved
-      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
+    var theme = saved === 'dark' ? 'dark' : 'light';
+    root.dataset.theme = theme;
+    root.classList.toggle('dark', theme === 'dark');
+    root.style.colorScheme = theme;
   } catch (_) {
-    document.documentElement.dataset.theme = 'light';
+    root.dataset.theme = 'light';
+    root.classList.remove('dark');
+    root.style.colorScheme = 'light';
   }
 })();`;
 
@@ -121,18 +151,23 @@ const webApplicationSchema = {
   url: siteUrl,
   applicationCategory: "EducationalApplication",
   operatingSystem: "Any",
-  description: "A responsive assignment tracker for organizing subjects and coursework.",
+  description:
+    "A responsive assignment tracker for organizing subjects and coursework.",
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
 };
 
-export default async function RootLayout({ children }) {
+type RootLayoutProps = Readonly<{
+  children: ReactNode;
+}>;
+
+export default async function RootLayout({ children }: RootLayoutProps) {
   const initialSubjects = await getCourseCatalog();
 
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${displayFont.variable} ${bodyFont.variable} h-full antialiased`}
+      className={`${inter.variable} ${poppins.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
@@ -142,11 +177,12 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body className="min-h-full flex flex-col">
-        <AdminProvider initialSubjects={initialSubjects}>
-          <Navbar />
-          <div className="relative z-10 flex-1">{children}</div>
-        </AdminProvider>
-        <PwaRegister />
+        <Providers>
+          <AdminProvider initialSubjects={initialSubjects}>
+            <Navbar />
+            <div className="relative z-10 flex-1">{children}</div>
+          </AdminProvider>
+        </Providers>
       </body>
     </html>
   );

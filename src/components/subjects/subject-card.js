@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { useAdmin } from "@/components/admin/admin-provider";
+import DeleteSubjectDialog from "@/components/delete-subject-dialog";
 import { useDismissable } from "@/lib/use-dismissable";
 
 function CopyGlyph() {
@@ -26,6 +27,7 @@ function CheckGlyph() {
 export default function SubjectCard({ subject, rank }) {
     const { isAdmin, openAddSubject, deleteSubject } = useAdmin();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
     const menuRef = useDismissable(menuOpen, () => setMenuOpen(false));
 
@@ -85,6 +87,7 @@ export default function SubjectCard({ subject, rank }) {
     };
 
     return (
+        <>
         <article className="group relative h-full overflow-hidden rounded-[24px] border border-white/70 bg-(--panel) p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1 sm:rounded-[28px] sm:p-6">
             <div
                 className="absolute left-1/2 top-0 h-1.5 w-20 -translate-x-1/2 rounded-b-full transition-all duration-300 ease-out group-hover:w-full group-hover:rounded-none group-hover:h-2 group-hover:shadow-[0_4px_15px_rgba(15,23,42,0.15)]"
@@ -127,7 +130,7 @@ export default function SubjectCard({ subject, rank }) {
                                     type="button"
                                     onClick={() => {
                                         setMenuOpen(false);
-                                        deleteSubject(subject.slug);
+                                        setDeleteOpen(true);
                                     }}
                                     className="flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-50"
                                 >
@@ -226,5 +229,12 @@ export default function SubjectCard({ subject, rank }) {
                 </div>
             </div>
         </article>
+        <DeleteSubjectDialog
+            open={deleteOpen}
+            subjectName={subject.name}
+            onCancel={() => setDeleteOpen(false)}
+            onConfirm={() => deleteSubject(subject.slug)}
+        />
+        </>
     );
 }

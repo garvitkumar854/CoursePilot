@@ -3,6 +3,35 @@ import { getDatabase } from "@/lib/mongodb";
 import { getCourseCatalog } from "@/lib/course-db";
 import { getAdminSession } from "@/lib/admin-session";
 
+export async function GET(_request, { params }) {
+    const session = await getAdminSession();
+
+    if (!session) {
+        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const { slug } = await params;
+    const database = await getDatabase();
+    const subject = await database.collection("subjects").findOne(
+        { slug },
+        { projection: { _id: 1 } },
+    );
+
+    if (!subject) {
+        return NextResponse.json({ message: "Subject not found." }, { status: 404 });
+    }
+
+    const latest = await database.collection("assignments").findOne(
+        { subjectId: subject._id, isActive: { $ne: false } },
+        { sort: { assignmentNumber: -1 }, projection: { assignmentNumber: 1 } },
+    );
+
+    return NextResponse.json(
+        { nextNumber: (Number(latest?.assignmentNumber) || 0) + 1 },
+        { headers: { "Cache-Control": "no-store" } },
+    );
+}
+
 export async function POST(request, { params }) {
     const session = await getAdminSession();
 
@@ -11,7 +40,7 @@ export async function POST(request, { params }) {
     }
 
     const { slug } = await params;
-    const { number, title, description, assignedDate } = await request.json();
+    const { title, description, assignedDate } = await request.json();
     const trimmedTitle = String(title ?? "").trim();
 
     if (!trimmedTitle) {
@@ -26,14 +55,18 @@ export async function POST(request, { params }) {
         return NextResponse.json({ message: "Subject not found." }, { status: 404 });
     }
 
-    const latest = await database
-        .collection("assignments")
-        .find({ subjectId: subject._id, isActive: { $ne: false } })
-        .sort({ order: -1, assignmentNumber: -1 })
-        .limit(1)
-        .toArray();
-    const nextIndex = (latest[0]?.order ?? latest[0]?.assignmentNumber ?? 0) + 1;
-    const assignmentNumber = Number(number) || nextIndex;
+    const [sequence] = await database.collection("assignments").aggregate([
+        { $match: { subjectId: subject._id, isActive: { $ne: false } } },
+        {
+            $group: {
+                _id: null,
+                maximumOrder: { $max: "$order" },
+                maximumNumber: { $max: "$assignmentNumber" },
+            },
+        },
+    ]).toArray();
+    const nextIndex = (Number(sequence?.maximumOrder) || 0) + 1;
+    const assignmentNumber = (Number(sequence?.maximumNumber) || 0) + 1;
 
     const insertResult = await database.collection("assignments").insertOne({
         subjectId: subject._id,

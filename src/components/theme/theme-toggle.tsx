@@ -3,11 +3,21 @@
 import { useEffect } from "react";
 
 const STORAGE_KEY = "coursepilot-theme";
+type Theme = "light" | "dark";
 
-function applyTheme(theme) {
-    const nextTheme = theme === "dark" ? "dark" : "light";
-    document.documentElement.dataset.theme = nextTheme;
-    document.documentElement.style.colorScheme = nextTheme;
+function applyTheme(theme: string | null): Theme {
+    const nextTheme: Theme = theme === "dark" ? "dark" : "light";
+    const root = document.documentElement;
+
+    // Keep transition suppression active for the paint that contains the color
+    // change. No layout read or synchronous React update is needed.
+    root.classList.add("theme-switching");
+    root.dataset.theme = nextTheme;
+    root.classList.toggle("dark", nextTheme === "dark");
+    root.style.colorScheme = nextTheme;
+
+    requestAnimationFrame(() => root.classList.remove("theme-switching"));
+    return nextTheme;
 }
 
 function SunIcon() {
@@ -29,7 +39,7 @@ function MoonIcon() {
 
 export default function ThemeToggle() {
     useEffect(() => {
-        const handleStorage = (event) => {
+        const handleStorage = (event: StorageEvent) => {
             if (event.key === STORAGE_KEY) applyTheme(event.newValue);
         };
 

@@ -33,6 +33,17 @@ function UploadIcon() {
     );
 }
 
+function DropZoneIcon() {
+    return (
+        <svg viewBox="0 0 64 64" aria-hidden="true" className="h-14 w-14 overflow-visible">
+            <path d="M18 48h29a11 11 0 0 0 1.6-21.9A18 18 0 0 0 14 21.8 13.5 13.5 0 0 0 18 48Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" opacity=".65" />
+            <g className="upload-arrow">
+                <path d="M32 42V23m0 0-7 7m7-7 7 7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.5" />
+            </g>
+        </svg>
+    );
+}
+
 function TrashIcon() {
     return (
         <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 stroke-[1.8]">
@@ -128,6 +139,7 @@ function PreviewRow({ assignment, index, onChange, onRemove }) {
 export default function UploadAssignmentsModal({ open, subjectName, subjectSlug, onClose, onImport }) {
     const fileInputRef = useRef(null);
     const [fileName, setFileName] = useState("");
+    const [isDragging, setIsDragging] = useState(false);
     const [assignments, setAssignments] = useState([]);
     const [parseErrors, setParseErrors] = useState([]);
     const [formError, setFormError] = useState("");
@@ -139,6 +151,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
 
     const reset = () => {
         setFileName("");
+        setIsDragging(false);
         setAssignments([]);
         setParseErrors([]);
         setFormError("");
@@ -158,13 +171,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
         onClose?.();
     };
 
-    const handleFileChange = async (event) => {
-        const file = event.target.files?.[0];
-
-        if (!file) {
-            return;
-        }
-
+    const processFile = async (file) => {
         setFormError("");
         setFileName(file.name);
 
@@ -178,6 +185,18 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
             setAssignments([]);
             setParseErrors([{ line: 0, message: "That file could not be read as text." }]);
         }
+    };
+
+    const handleFileChange = async (event) => {
+        const file = event.target.files?.[0];
+        if (file) await processFile(file);
+    };
+
+    const handleDrop = async (event) => {
+        event.preventDefault();
+        setIsDragging(false);
+        const file = event.dataTransfer.files?.[0];
+        if (file) await processFile(file);
     };
 
     const updateAssignment = (key, patch) => {
@@ -234,7 +253,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.22, ease: EASE }}
-                    className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/35 px-2.5 py-3 backdrop-blur-[8px] sm:items-center sm:px-4 sm:py-8"
+                    className="fixed inset-0 z-50 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md"
                     onMouseDown={(event) => {
                         if (event.target === event.currentTarget) {
                             handleClose();
@@ -248,7 +267,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 12, scale: 0.98 }}
                         transition={{ duration: 0.28, ease: EASE }}
-                        className={`relative flex max-h-[93vh] w-full flex-col rounded-[22px] bg-white p-4 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:max-h-[88vh] sm:rounded-[32px] sm:p-8 ${hasPreview ? "max-w-[680px]" : "max-w-[560px]"
+                        className={`relative flex max-h-[calc(100dvh-2rem)] w-full flex-col rounded-2xl border border-white/15 bg-white p-4 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:p-8 ${hasPreview ? "max-w-[680px]" : "max-w-[560px]"
                             }`}
                     >
                         <button
@@ -277,13 +296,34 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
                                     <span className="mb-2 block text-[0.7rem] font-black uppercase tracking-[0.2em] text-slate-400">
                                         Text file
                                     </span>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept=".txt,.md,.csv,text/plain"
-                                        onChange={handleFileChange}
-                                        className="w-full cursor-pointer rounded-2xl border border-slate-200 bg-slate-50/60 px-3 py-3 text-sm font-semibold text-slate-600 outline-none transition-colors file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-slate-200/80 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-slate-700 hover:border-slate-300 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
-                                    />
+                                    <label
+                                        onDragEnter={(event) => { event.preventDefault(); setIsDragging(true); }}
+                                        onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; setIsDragging(true); }}
+                                        onDragLeave={(event) => {
+                                            if (!event.currentTarget.contains(event.relatedTarget)) setIsDragging(false);
+                                        }}
+                                        onDrop={handleDrop}
+                                        className={`group grid min-h-52 cursor-pointer place-items-center rounded-2xl border-2 border-dashed p-5 text-center transition-all duration-200 ${isDragging ? "border-blue-500 bg-blue-50 text-blue-600 shadow-[0_0_0_5px_rgba(59,130,246,0.10)]" : "border-slate-300 bg-slate-50/70 text-slate-500 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600"}`}
+                                    >
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept=".txt,.md,.csv,text/plain"
+                                            onChange={handleFileChange}
+                                            className="sr-only"
+                                        />
+                                        <span className="flex flex-col items-center">
+                                            <span className="drop-zone-icon grid size-20 place-items-center rounded-2xl bg-white shadow-[0_14px_35px_rgba(15,23,42,0.10)] transition-transform duration-200 group-hover:-translate-y-1">
+                                                <DropZoneIcon />
+                                            </span>
+                                            <strong className="font-poppins mt-4 text-base font-bold text-slate-800">
+                                                {isDragging ? "Release to upload" : "Drop your assignment file here"}
+                                            </strong>
+                                            <span className="mt-1.5 text-xs leading-5 text-slate-500">
+                                                or tap to browse · TXT, Markdown, or CSV
+                                            </span>
+                                        </span>
+                                    </label>
                                     {fileName ? (
                                         <p className="mt-2 text-xs font-semibold text-slate-400">
                                             Parsed <span className="text-slate-600">{fileName}</span>

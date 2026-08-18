@@ -7,12 +7,19 @@
   },
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "node .next/standalone/server.js",
     "lint": "eslint",
-    "postbuild": "node scripts/prepare-standalone.mjs"
+    "postbuild": "node scripts/prepare-standalone.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:mobile": "playwright test --project=\"iPhone 14\" --project=\"Pixel 7\"",
+    "test:preflight": "npm run lint && npm run typecheck && npm run test && npm run build && npm run test:e2e"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.4",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^13.1.0",
     "mongodb": "^7.5.0",
@@ -21,10 +28,22 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.5",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.1.4",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
-    "tailwindcss": "^4"
+    "jsdom": "^30.0.1",
+    "tailwindcss": "^4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   }
 }
