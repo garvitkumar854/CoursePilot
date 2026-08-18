@@ -50,7 +50,7 @@ export function DeleteSubjectDialog({
 
   return (
     <div
-      className={`fixed inset-0 z-[70] grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md transition-opacity duration-200 ${entered ? "opacity-100" : "opacity-0"}`}
+      className={`fixed inset-0 z-[70] grid min-h-[100dvh] place-items-center overflow-y-auto bg-slate-950/35 p-3 backdrop-blur-sm transition-opacity duration-200 sm:p-4 ${entered ? "opacity-100" : "opacity-0"}`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) close();
       }}
@@ -60,7 +60,7 @@ export function DeleteSubjectDialog({
         aria-modal="true"
         aria-labelledby="delete-subject-title"
         aria-describedby="delete-subject-description"
-        className={`w-full max-w-md rounded-2xl border border-white/15 bg-white p-[clamp(1rem,4vw,1.75rem)] shadow-[0_32px_100px_rgba(15,23,42,0.3)] transition-all duration-200 ease-out ${entered ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-95 opacity-0"}`}
+        className={`w-full max-w-[min(24rem,calc(100vw-1.5rem))] rounded-2xl border border-white/15 bg-white p-[clamp(1rem,4vw,1.5rem)] shadow-[0_24px_70px_rgba(15,23,42,0.24)] transition-[transform,opacity] duration-200 ease-out ${entered ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-95 opacity-0"}`}
       >
         <span className="grid size-12 place-items-center rounded-2xl bg-rose-50 text-rose-600" aria-hidden="true">
           <svg viewBox="0 0 24 24" className="size-6">

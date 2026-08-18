@@ -102,10 +102,10 @@ export default function AssignmentRow({
             onDragStart={() => setIsDragging(true)}
             onDragEnd={() => setIsDragging(false)}
             transition={{ duration: 0.25, ease: EASE }}
-            className={`assignment-target relative scroll-mt-24 border-t border-slate-200/80 bg-white first:border-t-0 ${isDragging ? "z-20 rounded-2xl shadow-[0_18px_45px_rgba(15,23,42,0.16)]" : "z-0"
+            className={`assignment-target relative scroll-mt-24 border-t border-slate-200/80 bg-white first:border-t-0 ${isDragging ? "z-20 rounded-2xl shadow-[0_18px_45px_rgba(15,23,42,0.16)]" : menuOpen ? "z-50" : "z-0"
                 }`}
         >
-            <div className="flex items-start gap-2 px-2.5 py-3 sm:gap-4 sm:px-6 sm:py-4">
+            <div className={`flex gap-2 px-2.5 py-3 sm:gap-4 sm:px-6 sm:py-4 ${assignment.description ? "items-start" : "items-center"}`}>
                 {isAdmin && isReordering ? (
                     <button
                         type="button"

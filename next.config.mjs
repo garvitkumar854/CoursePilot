@@ -42,6 +42,17 @@ const withPWA = withPWAInit({
         },
       },
       {
+        // Catalog responses are small public course metadata. Cache briefly for
+        // instant repeat visits; TanStack Query still revalidates after mutation.
+        urlPattern: /\/api\/subjects(?:\?.*)?$/i,
+        handler: "StaleWhileRevalidate",
+        options: {
+          cacheName: "course-catalog-api",
+          cacheableResponse: { statuses: [0, 200] },
+          expiration: { maxEntries: 8, maxAgeSeconds: 5 * 60 },
+        },
+      },
+      {
         urlPattern: /\/_next\/static\/.*/i,
         handler: "CacheFirst",
         options: {

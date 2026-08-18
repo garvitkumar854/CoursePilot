@@ -13,7 +13,12 @@ function slugify(value) {
 
 export async function GET() {
     const subjects = await getCourseCatalog();
-    return NextResponse.json({ subjects });
+    // Browser and service-worker caches can serve a known catalog immediately;
+    // React Query silently validates it in the background.
+    return NextResponse.json(
+        { subjects },
+        { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=300" } },
+    );
 }
 
 export async function POST(request) {

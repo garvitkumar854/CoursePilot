@@ -258,3 +258,32 @@ export function ConfirmDialog({ open, title, message, confirmLabel = "Delete", o
         </Shell>
     );
 }
+
+/** Deferred dialog bundle used by the assignment page. */
+export default function AssignmentDialogs({ dialog, subjectName, position, onClose, onSave, onDelete }) {
+    return (
+        <>
+            <EditAssignmentDialog
+                open={dialog?.type === "edit"}
+                assignment={dialog?.assignment}
+                onClose={onClose}
+                onSave={onSave}
+            />
+            <InfoAssignmentDialog
+                open={dialog?.type === "info"}
+                assignment={dialog?.assignment}
+                subjectName={subjectName}
+                position={position}
+                onClose={onClose}
+            />
+            <ConfirmDialog
+                open={dialog?.type === "delete"}
+                title="Delete assignment"
+                message={dialog?.assignment ? `"${dialog.assignment.title}" will be permanently removed from ${subjectName}.` : ""}
+                confirmLabel="Delete assignment"
+                onClose={onClose}
+                onConfirm={onDelete}
+            />
+        </>
+    );
+}
