@@ -39,7 +39,7 @@ body {
     radial-gradient(circle at 85% 10%, rgba(147, 197, 253, 0.25), transparent 22%),
     linear-gradient(180deg, #faf8f4 0%, #f3efe7 100%);
   color: var(--foreground);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
   margin: 0;
   padding: 0;
   transition: background-color 240ms ease, color 240ms ease;
@@ -248,6 +248,178 @@ html[data-theme="dark"] .assignment-target:target {
   html {
     font-size: 14px;
   }
+}
+
+/* Drop-in performance primitives. Existing component colors and spacing remain
+   untouched; these classes are opt-in except for the mandated font families. */
+.font-inter {
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+}
+
+.font-poppins,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-poppins), Poppins, Arial, sans-serif;
+}
+
+/* Theme colors are committed in one paint. The selector includes pseudo
+   elements so shadows, overlays and decorative surfaces cannot trail behind. */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+  transition-delay: 0s !important;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+.native-scroll {
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.responsive-container {
+  container-type: inline-size;
+  width: min(100%, 80rem);
+  margin-inline: auto;
+  padding-inline: clamp(0.75rem, 3vw, 2rem);
+}
+
+.fluid-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+@container (min-width: 42rem) {
+  .cq-span-2 {
+    grid-column: span 2;
+  }
+}
+
+/* Reserve geometry before remote content resolves. Set --reserved-ratio to
+   the final card/media ratio when a component needs a different shape. */
+.reserved-content {
+  width: 100%;
+  aspect-ratio: var(--reserved-ratio, 16 / 9);
+  overflow: clip;
+  contain: layout paint;
+}
+
+.layout-skeleton {
+  width: 100%;
+  aspect-ratio: var(--reserved-ratio, 16 / 9);
+  border-radius: inherit;
+  background: linear-gradient(100deg, rgb(226 232 240 / 0.7) 30%, rgb(248 250 252 / 0.95) 50%, rgb(226 232 240 / 0.7) 70%);
+  background-size: 220% 100%;
+  animation: skeleton-shimmer 1.4s linear infinite;
+}
+
+.route-transition {
+  min-width: 0;
+  min-height: 100%;
+  view-transition-name: route-content;
+  animation: route-enter 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+.toast-viewport {
+  contain: layout paint style;
+}
+
+.toast-notification {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+  animation: toast-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.toast-notification[data-state="closed"] {
+  animation: toast-exit 160ms ease-in both;
+}
+
+@keyframes route-enter {
+  from { opacity: 0; transform: translate3d(0, 0.4rem, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes toast-enter {
+  from { opacity: 0; transform: translate3d(calc(100% + 1.5rem), 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes toast-exit {
+  from { opacity: 1; transform: translate3d(0, 0, 0); }
+  to { opacity: 0; transform: translate3d(calc(100% + 1.5rem), 0, 0); }
+}
+
+@keyframes skeleton-shimmer {
+  to { background-position-x: -220%; }
+}
+
+.premium-dialog {
+  transform: translate3d(0, 0, 0);
+  transform-origin: center;
+  animation: premium-dialog-enter 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.upload-arrow {
+  transform-origin: center;
+  animation: upload-arrow-float 1.6s ease-in-out infinite;
+}
+
+@keyframes premium-dialog-enter {
+  from { opacity: 0; transform: translate3d(0, 0.5rem, 0) scale(0.95); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes upload-arrow-float {
+  0%, 100% { transform: translate3d(0, 0.2rem, 0); }
+  50% { transform: translate3d(0, -0.25rem, 0); }
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(route-content) {
+  animation: 120ms ease-in both fade-out;
+}
+
+::view-transition-new(route-content) {
+  animation: 180ms cubic-bezier(0.22, 1, 0.36, 1) both route-enter;
+}
+
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+
+@media (max-width: 40rem) {
+  .toast-notification {
+    animation-name: toast-enter-mobile;
+  }
+
+  .toast-notification[data-state="closed"] {
+    animation-name: toast-exit-mobile;
+  }
+}
+
+@keyframes toast-enter-mobile {
+  from { opacity: 0; transform: translate3d(0, -1rem, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes toast-exit-mobile {
+  from { opacity: 1; transform: translate3d(0, 0, 0); }
+  to { opacity: 0; transform: translate3d(0, -1rem, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {

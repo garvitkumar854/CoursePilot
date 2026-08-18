@@ -1,8 +1,10 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import AuthModal from "@/components/auth/auth-modal";
 import UploadAssignmentsModal from "@/components/subjects/upload-assignments-modal";
+import InlineCalendar from "@/components/inline-calendar";
 import { subjects as seedSubjects } from "@/lib/course-data";
 
 const AdminContext = createContext(null);
@@ -29,6 +31,11 @@ function normalizeSubject(subject) {
 
 function normalizeCatalog(subjects) {
     return (subjects ?? seedSubjects).map((subject) => normalizeSubject(subject));
+}
+
+function getNextAssignmentNumber(subject) {
+    const assignments = subject?.dateGroups?.flatMap((group) => group.assignments ?? []) ?? [];
+    return assignments.reduce((maximum, assignment) => Math.max(maximum, Number(assignment.order) || 0), 0) + 1;
 }
 
 function CloseIcon() {
@@ -68,8 +75,8 @@ function Input({ label, ...props }) {
 
 function ModalShell({ title, subtitle, onClose, children, widthClass = "max-w-[460px]" }) {
     return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/35 px-2.5 py-3 backdrop-blur-[8px] sm:items-center sm:px-4 sm:py-8">
-            <div className={`relative max-h-[94vh] w-full overflow-y-auto ${widthClass} rounded-[24px] bg-white p-4.5 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:rounded-[32px] sm:p-8`}>
+        <div className="fixed inset-0 z-50 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md">
+            <div className={`premium-dialog relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto ${widthClass} rounded-2xl border border-white/15 bg-white p-4.5 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:p-8`}>
                 <button
                     type="button"
                     onClick={onClose}
@@ -162,11 +169,26 @@ function SubjectModal({ open, subject, onClose, onCreate }) {
     );
 }
 
-function AssignmentModal({ open, onClose, onCreate, subjectName }) {
-    const [number, setNumber] = useState("6");
+export function AssignmentModal({ open, onClose, onCreate, subjectName, subjectSlug, fallbackNumber }) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [assignedDate, setAssignedDate] = useState("2026-08-12");
+    const [assignedDate, setAssignedDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const nextNumberQuery = useQuery({
+        queryKey: ["assignment-next-number", subjectSlug],
+        enabled: Boolean(open && subjectSlug),
+        staleTime: 0,
+        queryFn: async ({ signal }) => {
+            const response = await fetch(`/api/subjects/${encodeURIComponent(subjectSlug)}/assignments`, {
+                cache: "no-store",
+                signal,
+            });
+
+            if (!response.ok) throw new Error("Unable to calculate assignment number");
+            return response.json();
+        },
+    });
+    const number = String(nextNumberQuery.data?.nextNumber ?? fallbackNumber ?? 1);
+    const numberLoading = nextNumberQuery.isFetching;
 
     if (!open) {
         return null;
@@ -187,7 +209,7 @@ function AssignmentModal({ open, onClose, onCreate, subjectName }) {
         >
             <form onSubmit={submit} className="space-y-5">
                 <div className="grid gap-4 sm:grid-cols-[120px_minmax(0,1fr)]">
-                    <Input label="No." value={number} onChange={(event) => setNumber(event.target.value)} placeholder="6" />
+                    <Input label="No." value={numberLoading ? "…" : number} readOnly aria-readonly="true" placeholder="Calculating…" />
                     <Input label="Assignment title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Assignment title" />
                 </div>
 
@@ -201,12 +223,7 @@ function AssignmentModal({ open, onClose, onCreate, subjectName }) {
                     />
                 </label>
 
-                <Input
-                    label="Assigned date"
-                    type="date"
-                    value={assignedDate}
-                    onChange={(event) => setAssignedDate(event.target.value)}
-                />
+                <InlineCalendar value={assignedDate} onChange={setAssignedDate} />
 
                 <div className="flex items-center justify-end gap-3 pt-1">
                     <button type="button" onClick={onClose} className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm">
@@ -489,8 +506,11 @@ export function AdminProvider({ children, initialSubjects }) {
                 }}
             />
             <AssignmentModal
+                key={modal?.type === "assignment" ? modal.subjectSlug : "closed-assignment"}
                 open={modal?.type === "assignment"}
+                subjectSlug={modal?.subjectSlug}
                 subjectName={catalogSubjects.find((subject) => subject.slug === modal?.subjectSlug)?.name}
+                fallbackNumber={getNextAssignmentNumber(catalogSubjects.find((subject) => subject.slug === modal?.subjectSlug))}
                 onClose={() => setModal(null)}
                 onCreate={(assignment) => {
                     const targetSubject = catalogSubjects.find((subject) => subject.slug === modal?.subjectSlug);

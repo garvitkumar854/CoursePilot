@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
+import InlineCalendar from "@/components/inline-calendar";
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -43,7 +44,7 @@ function Shell({ open, onClose, title, subtitle, children, footer }) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2, ease: EASE }}
-                    className="fixed inset-0 z-60 flex items-end justify-center bg-slate-900/40 px-2.5 py-3 backdrop-blur-[8px] sm:items-center sm:px-4 sm:py-8"
+                    className="fixed inset-0 z-60 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md"
                     onMouseDown={(event) => {
                         if (event.target === event.currentTarget) {
                             onClose();
@@ -55,7 +56,7 @@ function Shell({ open, onClose, title, subtitle, children, footer }) {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 16, scale: 0.98 }}
                         transition={{ duration: 0.26, ease: EASE }}
-                        className="flex max-h-[92vh] w-full max-w-[520px] flex-col rounded-[22px] bg-white p-4 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:max-h-[88vh] sm:rounded-[32px] sm:p-7"
+                        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-[520px] flex-col rounded-2xl border border-white/15 bg-white p-4 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:p-7"
                     >
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
@@ -156,17 +157,7 @@ export function EditAssignmentDialog({ open, assignment, onClose, onSave }) {
                     />
                 </label>
 
-                <label className="block max-w-[200px]">
-                    <span className="mb-1.5 block text-[0.68rem] font-black uppercase tracking-[0.16em] text-slate-400">
-                        Assigned date
-                    </span>
-                    <input
-                        type="date"
-                        value={assignedDate}
-                        onChange={(event) => setAssignedDate(event.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none transition-shadow focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
-                    />
-                </label>
+                <InlineCalendar value={assignedDate} onChange={setAssignedDate} />
 
                 {error ? <p className="text-sm font-bold text-rose-600">{error}</p> : null}
 

@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useAdmin } from "@/components/admin/admin-provider";
+import NavbarBrand from "@/components/navbar-brand";
 import ThemeToggle from "@/components/theme/theme-toggle";
 import { useDismissable } from "@/lib/use-dismissable";
 
@@ -203,12 +203,7 @@ export default function Navbar() {
                 className="mx-auto flex w-full items-center justify-between gap-1.5 rounded-[22px] border border-slate-200/90 bg-white/95 px-2.5 py-2 shadow-md backdrop-blur-md sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5"
                 style={{ maxWidth: 1180 }}
             >
-                <Link href="/" className="flex min-w-0 items-center" aria-label="CoursePilot home">
-                    <span className="relative block h-8 w-24 sm:h-10 sm:w-34">
-                        <Image src="/branding/light_logo.svg" alt="CoursePilot" fill priority sizes="(max-width: 640px) 96px, 136px" className="brand-logo-light object-contain object-left" />
-                        <Image src="/branding/dark_logo.svg" alt="CoursePilot" fill priority sizes="(max-width: 640px) 96px, 136px" className="brand-logo-dark object-contain object-left" />
-                    </span>
-                </Link>
+                <NavbarBrand />
 
                 <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
                     <ThemeToggle />

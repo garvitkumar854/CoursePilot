@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb";
 import { signJwt } from "@/lib/jwt";
+import { getPersistentCookieExpiry, getSessionMaxAge } from "@/lib/session-duration";
 
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 6;
@@ -95,8 +96,7 @@ export async function POST(request) {
             role: adminUser.role,
         };
 
-        const persistentSeconds = 60 * 60 * 24 * 30;
-        const sessionSeconds = 60 * 60 * 12;
+        const sessionMaxAge = getSessionMaxAge(rememberMe);
         const token = signJwt(
             {
                 sub: user.id,
@@ -106,7 +106,7 @@ export async function POST(request) {
                 name: user.name,
             },
             secret,
-            rememberMe ? persistentSeconds : sessionSeconds,
+            sessionMaxAge,
         );
 
         const response = NextResponse.json({ user, remembered: rememberMe });
@@ -117,7 +117,12 @@ export async function POST(request) {
             secure: process.env.NODE_ENV === "production",
             path: "/",
             priority: "high",
-            ...(rememberMe ? { maxAge: persistentSeconds } : {}),
+            ...(rememberMe
+                ? {
+                    maxAge: sessionMaxAge,
+                    expires: getPersistentCookieExpiry(true),
+                }
+                : {}),
         });
 
         return response;
