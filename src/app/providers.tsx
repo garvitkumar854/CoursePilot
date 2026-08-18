@@ -11,11 +11,15 @@ function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
       queries: {
+        // Keep known catalog data immediately available through a normal device
+        // session. Queries refetch in the background after five minutes and
+        // React Query's structural sharing avoids a render when JSON is unchanged.
         staleTime: 1000 * 60 * 5,
-        gcTime: 1000 * 60 * 60,
+        gcTime: 1000 * 60 * 60 * 24 * 30,
+        refetchOnMount: false,
         refetchOnWindowFocus: false,
         refetchOnReconnect: true,
-        retry: 2,
+        retry: 1,
       },
       mutations: {
         retry: 0,

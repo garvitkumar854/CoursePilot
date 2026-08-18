@@ -1,10 +1,13 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import AuthModal from "@/components/auth/auth-modal";
-import UploadAssignmentsModal from "@/components/subjects/upload-assignments-modal";
-import InlineCalendar from "@/components/inline-calendar";
+import dynamic from "next/dynamic";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+// These interactive surfaces stay out of the dashboard bundle until requested.
+const AuthModal = dynamic(() => import("@/components/auth/auth-modal"), { ssr: false });
+const UploadAssignmentsModal = dynamic(() => import("@/components/subjects/upload-assignments-modal"), { ssr: false });
+const InlineCalendar = dynamic(() => import("@/components/inline-calendar"), { ssr: false });
 import { subjects as seedSubjects } from "@/lib/course-data";
 
 const AdminContext = createContext(null);
@@ -173,6 +176,7 @@ export function AssignmentModal({ open, onClose, onCreate, subjectName, subjectS
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [assignedDate, setAssignedDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [calendarOpen, setCalendarOpen] = useState(false);
     const nextNumberQuery = useQuery({
         queryKey: ["assignment-next-number", subjectSlug],
         enabled: Boolean(open && subjectSlug),
@@ -194,9 +198,10 @@ export function AssignmentModal({ open, onClose, onCreate, subjectName, subjectS
         return null;
     }
 
-    const submit = (event) => {
+    const submit = async (event) => {
         event.preventDefault();
-        onCreate?.({ number, title, description, assignedDate, subjectName });
+        if (!title.trim()) return;
+        await onCreate?.({ number, title: title.trim(), description, assignedDate, subjectName });
         onClose();
     };
 
@@ -207,8 +212,8 @@ export function AssignmentModal({ open, onClose, onCreate, subjectName, subjectS
             subtitle={`Create a new assignment under ${subjectName ?? "this subject"}.`}
             onClose={onClose}
         >
-            <form onSubmit={submit} className="space-y-5">
-                <div className="grid gap-4 sm:grid-cols-[120px_minmax(0,1fr)]">
+            <form onSubmit={submit} className="space-y-3.5 sm:space-y-4">
+                <div className="grid gap-3 sm:grid-cols-[96px_minmax(0,1fr)]">
                     <Input label="No." value={numberLoading ? "…" : number} readOnly aria-readonly="true" placeholder="Calculating…" />
                     <Input label="Assignment title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Assignment title" />
                 </div>
@@ -219,13 +224,23 @@ export function AssignmentModal({ open, onClose, onCreate, subjectName, subjectS
                         value={description}
                         onChange={(event) => setDescription(event.target.value)}
                         placeholder="Brief assignment details, resources, or links..."
-                        className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[0.98rem] font-semibold text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
+                        className="min-h-20 w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-[0.92rem] font-semibold text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
                     />
                 </label>
 
-                <InlineCalendar value={assignedDate} onChange={setAssignedDate} />
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <label className="text-xs font-bold text-slate-600">Assigned date
+                            <input type="date" value={assignedDate} onChange={(event) => setAssignedDate(event.target.value)} className="mt-1 block min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-300" />
+                        </label>
+                        <button type="button" onClick={() => setCalendarOpen((current) => !current)} className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50">
+                            {calendarOpen ? "Hide calendar" : "Choose from calendar"}
+                        </button>
+                    </div>
+                    {calendarOpen ? <div className="mt-3"><InlineCalendar value={assignedDate} onChange={(value) => { setAssignedDate(value); setCalendarOpen(false); }} /></div> : null}
+                </div>
 
-                <div className="flex items-center justify-end gap-3 pt-1">
+                <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end sm:gap-3">
                     <button type="button" onClick={onClose} className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm">
                         Cancel
                     </button>
@@ -242,13 +257,24 @@ export function AdminProvider({ children, initialSubjects }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [modal, setModal] = useState(null);
-    const [prevInitialSubjects, setPrevInitialSubjects] = useState(initialSubjects);
-    const [catalogSubjects, setCatalogSubjects] = useState(() => normalizeCatalog(initialSubjects));
+    const queryClient = useQueryClient();
+    const catalogQuery = useQuery({
+        queryKey: ["coursepilot", "subjects"],
+        initialData: () => normalizeCatalog(initialSubjects),
+        // The server-rendered catalog is shown first. Later reads are silent,
+        // cancelable and only notify consumers when structural data changed.
+        queryFn: async ({ signal }) => {
+            const response = await fetch("/api/subjects", { signal, cache: "no-store" });
+            if (!response.ok) throw new Error("Unable to refresh subjects.");
+            const data = await response.json();
+            return normalizeCatalog(data.subjects);
+        },
+    });
+    const catalogSubjects = catalogQuery.data ?? normalizeCatalog(initialSubjects);
 
-    if (initialSubjects !== prevInitialSubjects) {
-        setPrevInitialSubjects(initialSubjects);
-        setCatalogSubjects(normalizeCatalog(initialSubjects));
-    }
+    useEffect(() => {
+        queryClient.setQueryData(["coursepilot", "subjects"], normalizeCatalog(initialSubjects));
+    }, [initialSubjects, queryClient]);
 
     useEffect(() => {
         let active = true;
@@ -281,7 +307,9 @@ export function AdminProvider({ children, initialSubjects }) {
 
     const syncCatalog = (subjectsFromServer) => {
         if (Array.isArray(subjectsFromServer)) {
-            setCatalogSubjects(normalizeCatalog(subjectsFromServer));
+            // Mutations replace the same cache that every subject view reads,
+            // so navigation has no spinner or second network wait.
+            queryClient.setQueryData(["coursepilot", "subjects"], normalizeCatalog(subjectsFromServer));
             window.dispatchEvent(new Event("coursepilot:notifications-changed"));
         }
     };
@@ -485,12 +513,13 @@ export function AdminProvider({ children, initialSubjects }) {
     return (
         <AdminContext.Provider value={value}>
             {children}
-            <AuthModal
-                key={modal?.type === "login" ? "open-login" : "closed-login"}
-                open={modal?.type === "login"}
-                onClose={() => setModal(null)}
-                onLogin={value.login}
-            />
+            {modal?.type === "login" ? (
+                <AuthModal
+                    open
+                    onClose={() => setModal(null)}
+                    onLogin={value.login}
+                />
+            ) : null}
             <SubjectModal
                 key={modal?.type === "subject" ? (modal.subject?.slug ?? "new-subject") : "closed-subject"}
                 open={modal?.type === "subject"}
@@ -505,28 +534,26 @@ export function AdminProvider({ children, initialSubjects }) {
                     await createSubject(subject);
                 }}
             />
-            <AssignmentModal
-                key={modal?.type === "assignment" ? modal.subjectSlug : "closed-assignment"}
-                open={modal?.type === "assignment"}
-                subjectSlug={modal?.subjectSlug}
+            {modal?.type === "assignment" ? <AssignmentModal
+                key={modal.subjectSlug}
+                open
+                subjectSlug={modal.subjectSlug}
                 subjectName={catalogSubjects.find((subject) => subject.slug === modal?.subjectSlug)?.name}
                 fallbackNumber={getNextAssignmentNumber(catalogSubjects.find((subject) => subject.slug === modal?.subjectSlug))}
                 onClose={() => setModal(null)}
                 onCreate={(assignment) => {
                     const targetSubject = catalogSubjects.find((subject) => subject.slug === modal?.subjectSlug);
-                    if (targetSubject) {
-                        addAssignment(targetSubject.slug, assignment).catch(() => {
-                        });
-                    }
+                    if (!targetSubject) return Promise.reject(new Error("Subject is no longer available."));
+                    return addAssignment(targetSubject.slug, assignment);
                 }}
-            />
-            <UploadAssignmentsModal
-                open={modal?.type === "upload"}
+            /> : null}
+            {modal?.type === "upload" ? <UploadAssignmentsModal
+                open
                 subjectSlug={modal?.subjectSlug}
                 subjectName={catalogSubjects.find((subject) => subject.slug === modal?.subjectSlug)?.name}
                 onClose={() => setModal(null)}
                 onImport={importAssignments}
-            />
+            /> : null}
         </AdminContext.Provider>
     );
 }

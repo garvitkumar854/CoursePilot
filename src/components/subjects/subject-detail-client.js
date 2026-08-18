@@ -1,16 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, Reorder, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useAdmin } from "@/components/admin/admin-provider";
 import AssignmentRow from "@/components/subjects/assignment-row";
-import {
-    ConfirmDialog,
-    EditAssignmentDialog,
-    InfoAssignmentDialog,
-} from "@/components/subjects/assignment-dialogs";
+
+// Edit/info/delete code and its calendar are loaded only after a menu action.
+const AssignmentDialogs = dynamic(() => import("@/components/subjects/assignment-dialogs"), { ssr: false });
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -65,9 +64,9 @@ function GroupCard({
 
     return (
         <motion.section
-            layout
-            transition={{ layout: { duration: 0.34, ease: EASE } }}
-            className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.06)] sm:rounded-3xl"
+            layout={!isReordering}
+            transition={{ layout: { duration: 0.2, ease: EASE } }}
+            className="overflow-visible rounded-2xl border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.06)] sm:rounded-3xl"
         >
             <button
                 type="button"
@@ -518,33 +517,17 @@ export default function SubjectDetailClient({ subject, slug }) {
                 </motion.section>
             </div>
 
-            <EditAssignmentDialog
-                open={dialog?.type === "edit"}
-                assignment={dialog?.assignment}
-                onClose={() => setDialog(null)}
-                onSave={(values) => updateAssignment(serverSubject.slug, dialog.assignment.id, values)}
-            />
+            {dialog ? (
+                <AssignmentDialogs
+                    dialog={dialog}
+                    subjectName={serverSubject.name}
+                    position={dialog.assignment ? positionOf(dialog.assignment.id) : null}
+                    onClose={() => setDialog(null)}
+                    onSave={(values) => updateAssignment(serverSubject.slug, dialog.assignment.id, values)}
+                    onDelete={() => deleteAssignment(serverSubject.slug, null, dialog.assignment.id)}
+                />
+            ) : null}
 
-            <InfoAssignmentDialog
-                open={dialog?.type === "info"}
-                assignment={dialog?.assignment}
-                subjectName={serverSubject.name}
-                position={dialog?.assignment ? positionOf(dialog.assignment.id) : null}
-                onClose={() => setDialog(null)}
-            />
-
-            <ConfirmDialog
-                open={dialog?.type === "delete"}
-                title="Delete assignment"
-                message={
-                    dialog?.assignment
-                        ? `"${dialog.assignment.title}" will be permanently removed from ${serverSubject.name}.`
-                        : ""
-                }
-                confirmLabel="Delete assignment"
-                onClose={() => setDialog(null)}
-                onConfirm={() => deleteAssignment(serverSubject.slug, null, dialog.assignment.id)}
-            />
         </main>
     );
 }

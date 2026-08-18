@@ -2,9 +2,11 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
+import { readClientCookie, removeClientCookie, writeClientCookie } from "@/lib/client-cookie";
 
 const EASE = [0.22, 1, 0.36, 1];
 const LOGIN_PREFERENCE_KEY = "coursepilot-login-preferences";
+const REMEMBER_ME_COOKIE = "coursepilot-remember-me";
 
 function readLoginPreferences(initialIdentifier) {
     if (typeof window === "undefined") {
@@ -12,10 +14,13 @@ function readLoginPreferences(initialIdentifier) {
     }
 
     try {
+        // Cookie records only the opt-in state for 30 days. The identifier stays
+        // in local storage so it is not sent to the server with every request.
         const saved = JSON.parse(window.localStorage.getItem(LOGIN_PREFERENCE_KEY) || "null");
+        const rememberMe = readClientCookie(REMEMBER_ME_COOKIE) === "true";
         return {
-            identifier: saved?.rememberMe && saved?.identifier ? saved.identifier : initialIdentifier,
-            rememberMe: saved?.rememberMe === true,
+            identifier: rememberMe && saved?.identifier ? saved.identifier : initialIdentifier,
+            rememberMe,
         };
     } catch {
         return { identifier: initialIdentifier, rememberMe: false };
@@ -122,9 +127,11 @@ export default function AuthModal({
             }
 
             if (rememberMe) {
-                window.localStorage.setItem(LOGIN_PREFERENCE_KEY, JSON.stringify({ identifier: cleanIdentifier, rememberMe: true }));
+                window.localStorage.setItem(LOGIN_PREFERENCE_KEY, JSON.stringify({ identifier: cleanIdentifier }));
+                writeClientCookie(REMEMBER_ME_COOKIE, "true");
             } else {
                 window.localStorage.removeItem(LOGIN_PREFERENCE_KEY);
+                removeClientCookie(REMEMBER_ME_COOKIE);
             }
 
             setPassword("");

@@ -268,11 +268,16 @@ h6 {
 
 /* Theme colors are committed in one paint. The selector includes pseudo
    elements so shadows, overlays and decorative surfaces cannot trail behind. */
-html.theme-switching *,
-html.theme-switching *::before,
-html.theme-switching *::after {
-  transition: none !important;
-  transition-delay: 0s !important;
+/* Theme changes are short compositor-friendly fades. Avoid broad `all`
+   transitions, which create expensive style work on low-end mobile devices. */
+.theme-toggle,
+.theme-toggle .theme-sun,
+.theme-toggle .theme-moon {
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease, background-color 180ms ease, color 180ms ease !important;
+}
+
+h1, h2, h3 {
+  font-weight: 700 !important;
 }
 
 html {
