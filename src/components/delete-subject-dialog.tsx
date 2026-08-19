@@ -60,7 +60,7 @@ export function DeleteSubjectDialog({
         aria-modal="true"
         aria-labelledby="delete-subject-title"
         aria-describedby="delete-subject-description"
-        className={`w-full max-w-[min(24rem,calc(100vw-1.5rem))] rounded-2xl border border-white/15 bg-white p-[clamp(1rem,4vw,1.5rem)] shadow-[0_24px_70px_rgba(15,23,42,0.24)] transition-[transform,opacity] duration-200 ease-out ${entered ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-95 opacity-0"}`}
+        className={`w-full max-w-[min(24rem,calc(100vw-1.5rem))] rounded-2xl border border-white/15 bg-white p-[clamp(1rem,4vw,1.5rem)] shadow-[0_24px_70px_rgba(15,23,42,0.24)] transition-gpu duration-200 ease-out ${entered ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-95 opacity-0"}`}
       >
         <span className="grid size-12 place-items-center rounded-2xl bg-rose-50 text-rose-600" aria-hidden="true">
           <svg viewBox="0 0 24 24" className="size-6">
@@ -81,7 +81,7 @@ export function DeleteSubjectDialog({
           <button type="button" disabled={busy} onClick={close} className="min-h-11 cursor-pointer rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50">
             Keep subject
           </button>
-          <button type="button" disabled={busy} onClick={confirm} className="min-h-11 cursor-pointer rounded-xl bg-rose-600 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(225,29,72,0.22)] transition-all hover:bg-rose-700 active:scale-[0.98] disabled:cursor-wait disabled:bg-rose-300 disabled:shadow-none">
+          <button type="button" disabled={busy} onClick={confirm} className="min-h-11 cursor-pointer rounded-xl bg-rose-600 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(225,29,72,0.22)] transition-gpu hover:bg-rose-700 active:scale-[0.98] disabled:cursor-wait disabled:bg-rose-300 disabled:shadow-none">
             {busy ? "Deleting…" : "Delete permanently"}
           </button>
         </div>

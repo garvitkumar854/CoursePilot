@@ -76,7 +76,7 @@ export function InlineCalendar({
         <button
           type="button"
           onClick={() => moveMonth(-1)}
-          className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-xl border border-slate-200 bg-white text-lg text-slate-600 transition-all duration-200 hover:border-blue-300 hover:text-blue-600 active:scale-95"
+          className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-xl border border-slate-200 bg-white text-lg text-slate-600 transition-gpu duration-200 hover:border-blue-300 hover:text-blue-600 active:scale-95"
           aria-label="Previous month"
         >
           ‹
@@ -87,7 +87,7 @@ export function InlineCalendar({
         <button
           type="button"
           onClick={() => moveMonth(1)}
-          className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-xl border border-slate-200 bg-white text-lg text-slate-600 transition-all duration-200 hover:border-blue-300 hover:text-blue-600 active:scale-95"
+          className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-xl border border-slate-200 bg-white text-lg text-slate-600 transition-gpu duration-200 hover:border-blue-300 hover:text-blue-600 active:scale-95"
           aria-label="Next month"
         >
           ›
@@ -118,7 +118,7 @@ export function InlineCalendar({
               aria-selected={active}
               aria-label={fullDateFormatter.format(day)}
               onClick={() => onChange(key)}
-              className={`aspect-square min-h-10 rounded-xl text-xs font-bold transition-all duration-200 sm:min-h-11 sm:text-sm ${
+              className={`aspect-square min-h-10 rounded-xl text-xs font-bold transition-gpu duration-200 sm:min-h-11 sm:text-sm ${
                 active
                   ? "bg-blue-600 text-white shadow-[0_8px_20px_rgba(37,99,235,0.28)]"
                   : key === today

@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useAdmin } from "@/components/admin/admin-provider";
 import NavbarBrand from "@/components/navbar-brand";
 import ThemeToggle from "@/components/theme/theme-toggle";
 import { useDismissable } from "@/lib/use-dismissable";
 
-const EASE = [0.22, 1, 0.36, 1];
 const NOTIFICATION_STORAGE_KEY = "coursepilot-notifications-v1";
 const EMPTY_PREFERENCES = { readIds: [], clearedAt: null };
 
@@ -214,7 +212,7 @@ export default function Navbar() {
                             aria-label="Notifications"
                             aria-expanded={notificationsOpen}
                             onClick={() => setNotificationsOpen((current) => !current)}
-                            className={`relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border transition-all duration-200 hover:-translate-y-0.5 sm:h-10 sm:w-10 ${notificationsOpen
+                            className={`relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border transition-gpu duration-200 hover:-translate-y-0.5 sm:h-10 sm:w-10 ${notificationsOpen
                                 ? "border-slate-300 bg-slate-900 text-white shadow-md"
                                 : "border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50"
                                 }`}
@@ -227,17 +225,16 @@ export default function Navbar() {
                             ) : null}
                         </button>
 
-                        <AnimatePresence>
-                            {notificationsOpen ? (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10, scale: 0.96 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: -10, scale: 0.96 }}
-                                    transition={{ duration: 0.2, ease: EASE }}
-                                    role="dialog"
-                                    aria-label="Notifications"
-                                    className="fixed left-1/2 top-[4.2rem] z-50 w-[calc(100vw-1rem)] max-w-[23rem] -translate-x-1/2 overflow-hidden rounded-[22px] border border-slate-200/90 bg-white/95 shadow-[0_28px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:absolute sm:left-auto sm:right-0 sm:top-13 sm:w-92 sm:translate-x-0 sm:rounded-3xl"
-                                >
+                        {notificationsOpen ? (
+                            // Drawer/panel motion is pure CSS (`.gpu-enter-scale`):
+                            // opacity + translate3d only. The Tailwind translate
+                            // utilities use the independent `translate` property,
+                            // so they compose with the keyframe transform.
+                            <div
+                                role="dialog"
+                                aria-label="Notifications"
+                                className="gpu-enter-scale fixed left-1/2 top-[4.2rem] z-50 w-[calc(100vw-1rem)] max-w-[23rem] -translate-x-1/2 overflow-hidden rounded-[22px] border border-slate-200/90 bg-white/95 shadow-[0_28px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:absolute sm:left-auto sm:right-0 sm:top-13 sm:w-92 sm:translate-x-0 sm:rounded-3xl"
+                            >
                                     <div className="border-b border-slate-100 px-3.5 py-3 sm:px-4">
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="flex min-w-0 items-center gap-2">
@@ -266,7 +263,7 @@ export default function Navbar() {
                                         ) : null}
                                     </div>
 
-                                    <div className="max-h-[min(64vh,28rem)] overflow-y-auto p-2" aria-live="polite">
+                                    <div className="contain-scroll max-h-[min(64vh,28rem)] overflow-y-auto p-2" aria-live="polite">
                                         {notificationsLoading ? (
                                             <div className="space-y-2 p-1">
                                                 {[0, 1, 2].map((row) => (
@@ -299,7 +296,11 @@ export default function Navbar() {
                                                     );
 
                                                     return (
-                                                        <motion.li key={notification.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.22, ease: EASE, delay: Math.min(index, 6) * 0.035 }}>
+                                                        <li
+                                                            key={notification.id}
+                                                            className="gpu-enter"
+                                                            style={{ animationDelay: `${Math.min(index, 6) * 35}ms` }}
+                                                        >
                                                             {href ? (
                                                                 <Link href={href} onClick={() => { markNotificationRead(notification.id); setNotificationsOpen(false); }} className={`flex items-start gap-2.5 rounded-2xl px-2.5 py-2.5 transition-colors hover:bg-slate-50 ${isUnread ? "bg-blue-50/50" : ""}`}>
                                                                     {content}
@@ -309,7 +310,7 @@ export default function Navbar() {
                                                                     {content}
                                                                 </button>
                                                             )}
-                                                        </motion.li>
+                                                        </li>
                                                     );
                                                 })}
                                             </ul>
@@ -321,13 +322,12 @@ export default function Navbar() {
                                             </div>
                                         )}
                                     </div>
-                                </motion.div>
-                            ) : null}
-                        </AnimatePresence>
+                            </div>
+                        ) : null}
                     </div>
 
                     {isAdmin ? (
-                        <button type="button" onClick={logout} title="Sign out of admin" className="group inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 text-xs font-black text-slate-600 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 sm:h-10 sm:px-4 sm:text-sm">
+                        <button type="button" onClick={logout} title="Sign out of admin" className="group inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 text-xs font-black text-slate-600 shadow-sm transition-gpu duration-200 hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 sm:h-10 sm:px-4 sm:text-sm">
                             <LogoutIcon /><span className="hidden sm:inline">Logout</span>
                         </button>
                     ) : (

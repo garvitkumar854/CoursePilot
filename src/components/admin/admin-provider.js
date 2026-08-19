@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -103,7 +103,8 @@ function ModalShell({ title, subtitle, onClose, children, widthClass = "max-w-[4
 
 function SubjectModal({ open, subject, onClose, onCreate }) {
     const colors = useMemo(() => ["#2563eb", "#8b5cf6", "#ec4899", "#10b981", "#f59e0b", "#14b8a6", "#f97316", "#ef4444", "#06b6d4", "#6366f1"], []);
-    const [name, setName] = useState(subject?.name ?? "");
+    // Uncontrolled: the name lives in the native input and is read once, from
+    // FormData, on submit. Keystrokes never touch React state.
     const [accentColor, setAccentColor] = useState(subject?.accentColor ?? colors[0]);
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
@@ -112,7 +113,8 @@ function SubjectModal({ open, subject, onClose, onCreate }) {
 
     const submit = async (event) => {
         event.preventDefault();
-        const trimmedName = name.trim();
+        const data = new FormData(event.currentTarget);
+        const trimmedName = String(data.get("subjectName") ?? "").trim();
 
         if (!trimmedName) {
             setError("Enter a subject name.");
@@ -138,7 +140,7 @@ function SubjectModal({ open, subject, onClose, onCreate }) {
             onClose={saving ? () => {} : onClose}
         >
             <form onSubmit={submit} className="space-y-5">
-                <Input label="Subject name" value={name} onChange={(event) => { setName(event.target.value); setError(""); }} placeholder="e.g. Artificial Intelligence" autoFocus required />
+                <Input label="Subject name" name="subjectName" defaultValue={subject?.name ?? ""} onInput={() => setError("")} placeholder="e.g. Artificial Intelligence" autoFocus required />
 
                 <div>
                     <span className="mb-2 block text-sm font-black text-slate-700">Accent color</span>
@@ -173,8 +175,10 @@ function SubjectModal({ open, subject, onClose, onCreate }) {
 }
 
 export function AssignmentModal({ open, onClose, onCreate, subjectName, subjectSlug, fallbackNumber }) {
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
+    // Uncontrolled form: title/description live in native inputs; the date
+    // input is synced with the calendar through a ref. Values are read once
+    // from FormData on submit, so typing never re-renders the modal tree.
+    const dateInputRef = useRef(null);
     const [assignedDate, setAssignedDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [calendarOpen, setCalendarOpen] = useState(false);
     const nextNumberQuery = useQuery({
@@ -200,9 +204,25 @@ export function AssignmentModal({ open, onClose, onCreate, subjectName, subjectS
 
     const submit = async (event) => {
         event.preventDefault();
-        if (!title.trim()) return;
-        await onCreate?.({ number, title: title.trim(), description, assignedDate, subjectName });
+        const data = new FormData(event.currentTarget);
+        const title = String(data.get("title") ?? "").trim();
+        if (!title) return;
+        await onCreate?.({
+            number,
+            title,
+            description: String(data.get("description") ?? "").trim(),
+            assignedDate: String(data.get("assignedDate") ?? assignedDate),
+            subjectName,
+        });
         onClose();
+    };
+
+    const pickDate = (value) => {
+        setAssignedDate(value);
+        if (dateInputRef.current) {
+            dateInputRef.current.value = value;
+        }
+        setCalendarOpen(false);
     };
 
     return (
@@ -215,14 +235,14 @@ export function AssignmentModal({ open, onClose, onCreate, subjectName, subjectS
             <form onSubmit={submit} className="space-y-3.5 sm:space-y-4">
                 <div className="grid gap-3 sm:grid-cols-[96px_minmax(0,1fr)]">
                     <Input label="No." value={numberLoading ? "…" : number} readOnly aria-readonly="true" placeholder="Calculating…" />
-                    <Input label="Assignment title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Assignment title" />
+                    <Input label="Assignment title" name="title" defaultValue="" placeholder="Assignment title" />
                 </div>
 
                 <label className="block">
                     <span className="mb-2 block text-sm font-black text-slate-700">Description (optional)</span>
                     <textarea
-                        value={description}
-                        onChange={(event) => setDescription(event.target.value)}
+                        name="description"
+                        defaultValue=""
                         placeholder="Brief assignment details, resources, or links..."
                         className="min-h-20 w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-[0.92rem] font-semibold text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
                     />
@@ -231,13 +251,13 @@ export function AssignmentModal({ open, onClose, onCreate, subjectName, subjectS
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <label className="text-xs font-bold text-slate-600">Assigned date
-                            <input type="date" value={assignedDate} onChange={(event) => setAssignedDate(event.target.value)} className="mt-1 block min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-300" />
+                            <input ref={dateInputRef} type="date" name="assignedDate" defaultValue={assignedDate} onChange={(event) => setAssignedDate(event.target.value)} className="mt-1 block min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-300" />
                         </label>
                         <button type="button" onClick={() => setCalendarOpen((current) => !current)} className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50">
                             {calendarOpen ? "Hide calendar" : "Choose from calendar"}
                         </button>
                     </div>
-                    {calendarOpen ? <div className="mt-3"><InlineCalendar value={assignedDate} onChange={(value) => { setAssignedDate(value); setCalendarOpen(false); }} /></div> : null}
+                    {calendarOpen ? <div className="mt-3"><InlineCalendar value={assignedDate} onChange={pickDate} /></div> : null}
                 </div>
 
                 <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end sm:gap-3">
