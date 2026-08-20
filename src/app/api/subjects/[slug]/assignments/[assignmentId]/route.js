@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb";
-import { getCourseCatalog } from "@/lib/course-db";
+import { catalogJsonResponse } from "@/lib/catalog-cache";
 import { getAdminSession } from "@/lib/admin-session";
 
 function parseAssignmentId(value) {
@@ -69,8 +69,7 @@ export async function DELETE(_request, { params }) {
         updatedAt: now,
     });
 
-    const subjects = await getCourseCatalog();
-    return NextResponse.json({ subjects });
+    return catalogJsonResponse({}, slug);
 }
 
 export async function PATCH(request, { params }) {
@@ -148,8 +147,7 @@ export async function PATCH(request, { params }) {
         );
     }
 
-    const subjects = await getCourseCatalog();
-    return NextResponse.json({ subjects });
+    return catalogJsonResponse({}, slug);
 }
 
 export async function PUT(request, { params }) {
@@ -225,6 +223,5 @@ export async function PUT(request, { params }) {
         updatedAt: now,
     });
 
-    const subjects = await getCourseCatalog();
-    return NextResponse.json({ subjects });
+    return catalogJsonResponse({}, slug);
 }

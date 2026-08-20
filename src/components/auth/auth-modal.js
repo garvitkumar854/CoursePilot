@@ -155,7 +155,7 @@ export default function AuthModal({
     // globals.css): opacity + translate3d only, zero main-thread layout work.
     return open ? (
         <div
-            className="gpu-fade fixed inset-0 z-60 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md"
+            className="gpu-fade fixed inset-0 z-60 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-3 backdrop-blur-md sm:p-4"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) handleClose();
             }}
@@ -164,7 +164,7 @@ export default function AuthModal({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="admin-login-title"
-                className="gpu-enter-scale contain-scroll relative max-h-[calc(100dvh-2rem)] w-full max-w-[460px] overflow-y-auto rounded-2xl border border-white/15 bg-white p-4.5 shadow-[0_40px_110px_rgba(15,23,42,0.28)] sm:p-8"
+                className="gpu-enter-scale contain-scroll relative max-h-[calc(100dvh-2rem)] w-full max-w-[460px] overflow-y-auto rounded-2xl border border-white/15 bg-white p-4 shadow-[0_40px_110px_rgba(15,23,42,0.28)] sm:p-6"
             >
                 <button type="button" onClick={handleClose} disabled={busy} className="absolute right-3.5 top-3.5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 sm:right-5 sm:top-5 sm:h-10 sm:w-10" aria-label="Close sign in">
                     <CloseIcon />
@@ -177,7 +177,7 @@ export default function AuthModal({
                     <p className="mt-2 max-w-md text-[0.8rem] leading-5.5 text-slate-500 sm:mt-3 sm:text-sm sm:leading-6">{subtitle}</p>
                 </div>
 
-                <form onSubmit={submit} className="mt-5 space-y-4 sm:mt-6 sm:space-y-5" noValidate>
+                <form onSubmit={submit} className="mt-4 space-y-3 sm:mt-6 sm:space-y-4" noValidate>
                     <label className="block">
                         <span className="mb-1.5 block text-xs font-black text-slate-700 sm:mb-2 sm:text-sm">Email or username</span>
                         <span className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-400 shadow-sm transition-shadow focus-within:border-blue-300 focus-within:text-blue-500 focus-within:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:px-4 sm:py-3">

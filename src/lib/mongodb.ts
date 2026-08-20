@@ -1,6 +1,7 @@
 import "server-only";
 
 import { Db, MongoClient, type MongoClientOptions } from "mongodb";
+import { ensureMongoIndexes } from "@/lib/mongo-indexes";
 
 const MONGODB_URI = process.env.MONGODB_URI?.trim();
 const MONGODB_DATABASE = process.env.MONGODB_DB?.trim();
@@ -27,6 +28,7 @@ const clientOptions: MongoClientOptions = {
 declare global {
   // `var` is required here so the declaration is attached to `globalThis`.
   var coursepilotMongoClientPromise: Promise<MongoClient> | undefined;
+  var coursepilotMongoIndexesPromise: Promise<void> | undefined;
 }
 
 function createClientPromise(): Promise<MongoClient> {
@@ -65,5 +67,9 @@ export function getMongoClient(): Promise<MongoClient> {
 /** Returns a database handle backed by the shared connection pool. */
 export async function getDatabase(databaseName = MONGODB_DATABASE): Promise<Db> {
   const client = await getMongoClient();
-  return client.db(databaseName || undefined);
+  const database = client.db(databaseName || undefined);
+
+  globalThis.coursepilotMongoIndexesPromise ??= ensureMongoIndexes(database).catch(() => undefined);
+
+  return database;
 }

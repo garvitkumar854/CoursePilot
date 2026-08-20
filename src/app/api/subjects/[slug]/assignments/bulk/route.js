@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb";
-import { getCourseCatalog } from "@/lib/course-db";
+import { catalogJsonResponse } from "@/lib/catalog-cache";
 import { getAdminSession } from "@/lib/admin-session";
 import { validateImportAssignments } from "@/lib/assignment-import";
 
@@ -111,6 +111,5 @@ export async function POST(request, { params }) {
         updatedAt: now,
     });
 
-    const subjects = await getCourseCatalog();
-    return NextResponse.json({ subjects, importedCount: documents.length });
+    return catalogJsonResponse({ importedCount: documents.length }, slug);
 }

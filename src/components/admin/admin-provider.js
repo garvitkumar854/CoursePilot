@@ -67,10 +67,10 @@ function EyeIcon() {
 function Input({ label, ...props }) {
     return (
         <label className="block">
-            <span className="mb-2 block text-sm font-black text-slate-700">{label}</span>
+            <span className="mb-1.5 block text-xs font-black text-slate-700 sm:mb-2 sm:text-sm">{label}</span>
             <input
                 {...props}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[0.98rem] font-semibold text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
+                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:px-4 sm:py-3 sm:text-[0.98rem]"
             />
         </label>
     );
@@ -78,8 +78,8 @@ function Input({ label, ...props }) {
 
 function ModalShell({ title, subtitle, onClose, children, widthClass = "max-w-[460px]" }) {
     return (
-        <div className="fixed inset-0 z-50 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md">
-            <div className={`premium-dialog relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto ${widthClass} rounded-2xl border border-white/15 bg-white p-4.5 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:p-8`}>
+        <div className="gpu-fade fixed inset-0 z-50 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-3 backdrop-blur-md sm:p-4">
+            <div className={`premium-dialog contain-scroll relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto ${widthClass} rounded-2xl border border-white/15 bg-white p-4 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:p-6`}>
                 <button
                     type="button"
                     onClick={onClose}
@@ -139,7 +139,7 @@ function SubjectModal({ open, subject, onClose, onCreate }) {
             subtitle={subject ? "Update this subject's name and accent." : "Create a new subject card for your dashboard."}
             onClose={saving ? () => {} : onClose}
         >
-            <form onSubmit={submit} className="space-y-5">
+            <form onSubmit={submit} className="space-y-3 sm:space-y-4">
                 <Input label="Subject name" name="subjectName" defaultValue={subject?.name ?? ""} onInput={() => setError("")} placeholder="e.g. Artificial Intelligence" autoFocus required />
 
                 <div>
@@ -150,7 +150,7 @@ function SubjectModal({ open, subject, onClose, onCreate }) {
                                 key={color}
                                 type="button"
                                 onClick={() => setAccentColor(color)}
-                                className={`h-8 w-8 cursor-pointer rounded-full transition-transform ${accentColor === color ? "scale-110 ring-2 ring-slate-900 ring-offset-2" : "hover:scale-105"}`}
+                                className={`h-8 w-8 cursor-pointer rounded-full transition-transform duration-200 ease-out ${accentColor === color ? "scale-110 ring-2 ring-slate-900 ring-offset-2" : "hover:scale-105"}`}
                                 style={{ backgroundColor: color }}
                                 aria-label={`Select ${color}`}
                                 aria-pressed={accentColor === color}
@@ -239,12 +239,12 @@ export function AssignmentModal({ open, onClose, onCreate, subjectName, subjectS
                 </div>
 
                 <label className="block">
-                    <span className="mb-2 block text-sm font-black text-slate-700">Description (optional)</span>
+                    <span className="mb-1.5 block text-xs font-black text-slate-700 sm:mb-2 sm:text-sm">Description (optional)</span>
                     <textarea
                         name="description"
                         defaultValue=""
                         placeholder="Brief assignment details, resources, or links..."
-                        className="min-h-20 w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-[0.92rem] font-semibold text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
+                        className="min-h-20 w-full resize-y rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:px-4 sm:text-[0.92rem]"
                     />
                 </label>
 

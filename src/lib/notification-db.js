@@ -19,7 +19,10 @@ export async function getNotifications(limit = 40) {
         const database = await getDatabase();
         const notificationDocuments = await database
             .collection("notifications")
-            .find({})
+            .find(
+                {},
+                { projection: { title: 1, body: 1, type: 1, subjectSlug: 1, assignmentId: 1, createdAt: 1 } },
+            )
             .sort({ createdAt: -1 })
             .limit(limit)
             .toArray();

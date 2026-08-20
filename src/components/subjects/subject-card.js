@@ -89,7 +89,7 @@ export default function SubjectCard({ subject, rank }) {
         <>
         {/* `.loop-item` applies content-visibility: auto + intrinsic-size
             containment so offscreen cards cost nothing to keep in the loop. */}
-        <article className="loop-item group relative h-full overflow-hidden rounded-[24px] border border-white/70 bg-(--panel) p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1 sm:rounded-[28px] sm:p-6">
+        <article className="loop-item group relative h-full overflow-hidden rounded-[24px] border border-white/70 bg-(--panel) p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] transition-transform duration-200 ease-out hover:-translate-y-1 sm:rounded-[28px] sm:p-6">
             {/* Accent bar: the hover expansion is now a transform scaleX on a
                 full-width layer (opacity + transform only). The static pill
                 underneath never animates geometry, so hovering a card cannot
@@ -99,7 +99,7 @@ export default function SubjectCard({ subject, rank }) {
                 style={{ backgroundColor: subject.accentColor }}
             />
             <div
-                className="absolute inset-x-0 top-0 h-2 origin-center scale-x-[0.21] rounded-none opacity-0 transition-gpu duration-300 ease-out group-hover:scale-x-100 group-hover:opacity-100 group-hover:shadow-[0_4px_15px_rgba(15,23,42,0.15)]"
+                className="absolute inset-x-0 top-0 h-2 origin-center scale-x-[0.21] rounded-none opacity-0 transition-gpu duration-200 ease-out group-hover:scale-x-100 group-hover:opacity-100 group-hover:shadow-[0_4px_15px_rgba(15,23,42,0.15)]"
                 style={{ backgroundColor: subject.accentColor }}
             />
 
@@ -172,7 +172,7 @@ export default function SubjectCard({ subject, rank }) {
                     <button
                         type="button"
                         onClick={handleCopy}
-                        className={`relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-2xl border transition-gpu duration-300 active:scale-95 ${
+                        className={`relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-2xl border transition-gpu duration-200 ease-out active:scale-95 ${
                             isCopied
                                 ? "border-emerald-300 bg-emerald-50 text-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.22)]"
                                 : "border-slate-200/90 bg-white text-slate-600 shadow-sm hover:border-slate-300 hover:bg-slate-50 hover:text-blue-600"
@@ -202,14 +202,14 @@ export default function SubjectCard({ subject, rank }) {
                     <Link
                         href={`/subjects/${subject.slug}`}
                         aria-label={`Open ${subject.name} assignments`}
-                        className="subject-view-button group/link inline-flex h-11 items-center gap-2.5 rounded-2xl border px-3 pl-4 text-xs font-black tracking-[-0.01em] shadow-sm transition-gpu duration-300 hover:-translate-y-0.5 active:scale-95 sm:text-sm"
+                        className="subject-view-button group/link inline-flex h-11 items-center gap-2.5 rounded-2xl border px-3 pl-4 text-xs font-black tracking-[-0.01em] shadow-sm transition-gpu duration-200 ease-out hover:-translate-y-0.5 active:scale-95 sm:text-sm"
                         style={{
                             "--subject-accent": subject.accentColor,
                             "--subject-tint": `${subject.accentColor}18`,
                         }}
                     >
                         Open subject
-                        <span className="subject-view-icon flex h-7 w-7 items-center justify-center rounded-xl shadow-sm transition-transform duration-300 group-hover/link:translate-x-0.5">
+                        <span className="subject-view-icon flex h-7 w-7 items-center justify-center rounded-xl shadow-sm transition-transform duration-200 ease-out group-hover/link:translate-x-0.5">
                             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3.5 w-3.5 stroke-[2.4]">
                                 <path d="M5 12h14m0 0-5-5m5 5-5 5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>

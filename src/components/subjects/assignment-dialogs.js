@@ -37,14 +37,14 @@ function Shell({ open, onClose, title, subtitle, children, footer }) {
     // translate3d only. No JS animation runtime, no layout measurement.
     return open ? (
         <div
-            className="gpu-fade fixed inset-0 z-60 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md"
+            className="gpu-fade fixed inset-0 z-60 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-3 backdrop-blur-md sm:p-4"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) {
                     onClose();
                 }
             }}
         >
-            <div className="gpu-enter-scale flex max-h-[calc(100dvh-2rem)] w-full max-w-[520px] flex-col rounded-2xl border border-white/15 bg-white p-4 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:p-7">
+            <div className="gpu-enter-scale flex max-h-[calc(100dvh-2rem)] w-full max-w-[520px] flex-col rounded-2xl border border-white/15 bg-white p-4 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:p-6">
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                         <h2 className="text-xl font-black tracking-[-0.04em] text-slate-900 sm:text-3xl">
@@ -123,7 +123,7 @@ export function EditAssignmentDialog({ open, assignment, onClose, onSave }) {
 
     return (
         <Shell open={open} onClose={onClose} title="Edit assignment" subtitle="Update the details for this assignment.">
-            <form key={formKey} onSubmit={submit} className="space-y-4">
+            <form key={formKey} onSubmit={submit} className="space-y-3 sm:space-y-4">
                 <label className="block">
                     <span className="mb-1.5 block text-[0.68rem] font-black uppercase tracking-[0.16em] text-slate-400">
                         Title
@@ -132,7 +132,7 @@ export function EditAssignmentDialog({ open, assignment, onClose, onSave }) {
                         name="title"
                         defaultValue={assignment?.title ?? ""}
                         placeholder="Assignment title"
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:py-2.5"
                     />
                 </label>
 
@@ -144,7 +144,7 @@ export function EditAssignmentDialog({ open, assignment, onClose, onSave }) {
                         name="description"
                         defaultValue={assignment?.description ?? ""}
                         placeholder="Optional description"
-                        className="min-h-24 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
+                        className="min-h-20 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:min-h-24 sm:py-2.5"
                     />
                 </label>
 
@@ -157,14 +157,14 @@ export function EditAssignmentDialog({ open, assignment, onClose, onSave }) {
                         type="button"
                         onClick={onClose}
                         disabled={saving}
-                        className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-black text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-60"
+                        className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-black text-slate-700 shadow-sm transition-transform duration-200 ease-out hover:bg-slate-50 active:scale-[0.98] disabled:opacity-60"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={saving}
-                        className="cursor-pointer rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white shadow-[0_16px_32px_rgba(37,99,235,0.24)] transition-colors hover:bg-blue-700 disabled:bg-blue-300 disabled:shadow-none"
+                        className="cursor-pointer rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white shadow-[0_16px_32px_rgba(37,99,235,0.24)] transition-transform duration-200 ease-out hover:bg-blue-700 active:scale-[0.98] disabled:bg-blue-300 disabled:shadow-none"
                     >
                         {saving ? "Saving..." : "Save changes"}
                     </button>
@@ -233,7 +233,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel = "Delete", o
                     type="button"
                     onClick={onClose}
                     disabled={busy}
-                    className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-black text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-60"
+                    className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-black text-slate-700 shadow-sm transition-transform duration-200 ease-out hover:bg-slate-50 active:scale-[0.98] disabled:opacity-60"
                 >
                     Cancel
                 </button>
@@ -241,7 +241,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel = "Delete", o
                     type="button"
                     onClick={confirm}
                     disabled={busy}
-                    className="cursor-pointer rounded-2xl bg-rose-600 px-5 py-2.5 text-sm font-black text-white shadow-[0_16px_32px_rgba(225,29,72,0.24)] transition-colors hover:bg-rose-700 disabled:bg-rose-300 disabled:shadow-none"
+                    className="cursor-pointer rounded-2xl bg-rose-600 px-5 py-2.5 text-sm font-black text-white shadow-[0_16px_32px_rgba(225,29,72,0.24)] transition-transform duration-200 ease-out hover:bg-rose-700 active:scale-[0.98] disabled:bg-rose-300 disabled:shadow-none"
                 >
                     {busy ? "Working..." : confirmLabel}
                 </button>

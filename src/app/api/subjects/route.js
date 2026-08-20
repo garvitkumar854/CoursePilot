@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb";
-import { getCourseCatalog } from "@/lib/course-db";
+import { catalogJsonResponse, readCourseCatalog } from "@/lib/catalog-cache";
 import { getAdminSession } from "@/lib/admin-session";
 
 function slugify(value) {
@@ -12,7 +12,7 @@ function slugify(value) {
 }
 
 export async function GET() {
-    const subjects = await getCourseCatalog();
+    const subjects = await readCourseCatalog();
     // Browser and service-worker caches can serve a known catalog immediately;
     // React Query silently validates it in the background.
     return NextResponse.json(
@@ -69,6 +69,5 @@ export async function POST(request) {
         updatedAt: now,
     });
 
-    const subjects = await getCourseCatalog();
-    return NextResponse.json({ subjects });
+    return catalogJsonResponse({}, finalSlug);
 }
