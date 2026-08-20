@@ -90,7 +90,7 @@ function PreviewRow({ assignment, index, onChange, onRemove }) {
     // keystrokes, so a 40-row import costs one paint per character, not 40
     // re-renders plus layout animation.
     return (
-        <div className="gpu-enter rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
+        <div className="gpu-enter rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-3.5">
             <div className="flex items-start gap-3">
                 <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-500">
                     {index + 1}
@@ -272,7 +272,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
     // list structure changes re-render plain DOM only.
     return open ? (
         <div
-            className="gpu-fade fixed inset-0 z-50 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md"
+            className="gpu-fade fixed inset-0 z-50 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-3 backdrop-blur-md sm:p-4"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) {
                     handleClose();
@@ -304,7 +304,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
                 </div>
 
                 <div className="contain-scroll mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                         <div>
                             <span className="mb-2 block text-[0.7rem] font-black uppercase tracking-[0.2em] text-slate-400">
                                 Text file

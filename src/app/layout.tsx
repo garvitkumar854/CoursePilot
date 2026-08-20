@@ -4,12 +4,12 @@ import type { ReactNode } from "react";
 
 import { AdminProvider } from "@/components/admin/admin-provider";
 import Navbar from "@/components/layout/navbar";
-import { getCourseCatalog } from "@/lib/course-db";
+import { readCourseCatalog } from "@/lib/catalog-cache";
 
 import "./globals.css";
 import { Providers } from "./providers";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://coursepilot.app";
 
@@ -119,6 +119,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
+  interactiveWidget: "resizes-content",
   colorScheme: "light dark",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f5f3ee" },
@@ -161,7 +162,7 @@ type RootLayoutProps = Readonly<{
 }>;
 
 export default async function RootLayout({ children }: RootLayoutProps) {
-  const initialSubjects = await getCourseCatalog();
+  const initialSubjects = await readCourseCatalog();
 
   return (
     <html

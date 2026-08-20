@@ -1,9 +1,9 @@
-import { getCourseCatalog } from "@/lib/course-db";
+import { readCourseCatalog } from "@/lib/catalog-cache";
 
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://coursepilot.app").replace(/\/$/, "");
 
 export default async function sitemap() {
-    const subjects = await getCourseCatalog();
+    const subjects = await readCourseCatalog();
     const now = new Date();
 
     return [

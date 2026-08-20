@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { getDatabase } from "@/lib/mongodb";
 import { subjects as fallbackSubjects } from "@/lib/course-data";
 
@@ -157,12 +158,35 @@ function buildSubjectRecord(subjectDocument, assignmentDocuments = []) {
     };
 }
 
+const SUBJECT_PROJECTION = {
+    name: 1,
+    slug: 1,
+    order: 1,
+    assignmentCount: 1,
+    lastUpdated: 1,
+    accentColor: 1,
+    summary: 1,
+    createdAt: 1,
+    updatedAt: 1,
+};
+
+const ASSIGNMENT_PROJECTION = {
+    subjectId: 1,
+    assignmentNumber: 1,
+    order: 1,
+    title: 1,
+    description: 1,
+    assignedDate: 1,
+    createdAt: 1,
+    isActive: 1,
+};
+
 export async function getCourseCatalog() {
     try {
         const database = await getDatabase();
         const [subjectDocuments, assignmentDocuments] = await Promise.all([
-            database.collection("subjects").find({}).sort({ order: 1, createdAt: 1 }).toArray(),
-            database.collection("assignments").find({ isActive: { $ne: false } }).sort({ order: 1, assignmentNumber: 1, createdAt: 1 }).toArray(),
+            database.collection("subjects").find({}, { projection: SUBJECT_PROJECTION }).sort({ order: 1, createdAt: 1 }).toArray(),
+            database.collection("assignments").find({ isActive: { $ne: false } }, { projection: ASSIGNMENT_PROJECTION }).sort({ order: 1, assignmentNumber: 1, createdAt: 1 }).toArray(),
         ]);
 
         const assignmentsBySubjectId = new Map();
@@ -185,10 +209,13 @@ export async function getCourseCatalog() {
     }
 }
 
-export async function getSubjectDetailsBySlug(slug) {
+export const getSubjectDetailsBySlug = cache(async function getSubjectDetailsBySlug(slug) {
     try {
         const database = await getDatabase();
-        const subjectDocument = await database.collection("subjects").findOne({ slug });
+        const subjectDocument = await database.collection("subjects").findOne(
+            { slug },
+            { projection: SUBJECT_PROJECTION },
+        );
 
         if (!subjectDocument) {
             return fallbackSubjects.find((subject) => subject.slug === slug) ?? null;
@@ -196,7 +223,10 @@ export async function getSubjectDetailsBySlug(slug) {
 
         const assignmentDocuments = await database
             .collection("assignments")
-            .find({ subjectId: subjectDocument._id, isActive: { $ne: false } })
+            .find(
+                { subjectId: subjectDocument._id, isActive: { $ne: false } },
+                { projection: ASSIGNMENT_PROJECTION },
+            )
             .sort({ order: 1, assignmentNumber: 1, createdAt: 1 })
             .toArray();
 
@@ -204,4 +234,4 @@ export async function getSubjectDetailsBySlug(slug) {
     } catch {
         return fallbackSubjects.find((subject) => subject.slug === slug) ?? null;
     }
-}
+});

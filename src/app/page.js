@@ -7,8 +7,8 @@ export default function Home() {
   const { isAdmin, openAddSubject, subjects } = useAdmin();
 
   return (
-    <main className="min-h-screen px-2.5 py-4 sm:px-6 sm:py-6 lg:px-8">
-      <section className="mx-auto w-full rounded-[24px] border border-white/70 bg-(--panel) p-3.5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:rounded-[34px] sm:p-8 lg:p-10" style={{ maxWidth: 1180 }}>
+    <main className="min-h-dvh px-2.5 py-4 sm:px-6 sm:py-6 lg:px-8">
+      <section className="mx-auto w-full rounded-[24px] border border-white/70 bg-(--panel) p-3.5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:rounded-[34px] sm:p-8 lg:p-10" style={{ maxWidth: 1180 }}>
         <div className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
           <div>
             <p className="text-[0.65rem] font-black uppercase tracking-[0.3em] text-slate-400 sm:text-xs sm:tracking-[0.34em]">Subjects</p>

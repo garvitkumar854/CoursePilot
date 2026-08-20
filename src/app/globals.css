@@ -42,13 +42,14 @@ html[data-theme="dark"] {
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   background: var(--background);
   overscroll-behavior-y: contain;
+  min-height: 100dvh;
 }
 
 body {
-  min-height: 100vh;
+  min-height: 100dvh;
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 40%),
     radial-gradient(circle at 85% 10%, rgba(147, 197, 253, 0.25), transparent 22%),
@@ -73,6 +74,8 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
+  contain: paint;
+  transform: translate3d(0, 0, 0);
   background-image:
     linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
@@ -356,9 +359,31 @@ html {
   -webkit-overflow-scrolling: touch;
 }
 
-.loop-item {
+.loop-item,
+.feed-item {
   content-visibility: auto;
-  contain-intrinsic-size: auto 320px;
+  contain-intrinsic-size: 100px;
+}
+
+/* Date-group cards keep a continuous rounded stroke on every side, including
+   while a row is active or a drag-reorder is in progress. Overflow stays
+   clipped so inner rows cannot square off the corners. */
+.assignment-group {
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 1rem;
+}
+
+@media (min-width: 40rem) {
+  .assignment-group {
+    border-radius: 1.5rem;
+  }
+}
+
+.micro-interact {
+  transition-property: transform, translate, scale, rotate, opacity;
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
 }
 
 .responsive-container {
@@ -403,7 +428,6 @@ html {
   min-height: 100%;
   view-transition-name: route-content;
   animation: route-enter 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  will-change: opacity, transform;
 }
 
 .toast-viewport {

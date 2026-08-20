@@ -101,7 +101,7 @@ const nextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   experimental: {
-    optimizePackageImports: ["lucide-react"],
+    optimizePackageImports: ["framer-motion"],
   },
   images: {
     formats: ["image/avif", "image/webp"],

@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
-import { getSubjectDetailsBySlug } from "@/lib/course-db";
+import { readSubjectBySlug } from "@/lib/catalog-cache";
 import SubjectDetailClient from "@/components/subjects/subject-detail-client";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export async function generateMetadata({ params }) {
     const { slug } = await params;
-    const subject = await getSubjectDetailsBySlug(slug);
+    const subject = await readSubjectBySlug(slug);
 
     if (!subject) {
         return {
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }) {
 
 export default async function SubjectPage({ params }) {
     const { slug } = await params;
-    const subject = await getSubjectDetailsBySlug(slug);
+    const subject = await readSubjectBySlug(slug);
 
     if (!subject) notFound();
 

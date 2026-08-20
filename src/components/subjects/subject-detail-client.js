@@ -3,13 +3,17 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { Reorder } from "framer-motion";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useAdmin } from "@/components/admin/admin-provider";
 import AssignmentRow from "@/components/subjects/assignment-row";
 
 // Edit/info/delete code and its calendar are loaded only after a menu action.
 const AssignmentDialogs = dynamic(() => import("@/components/subjects/assignment-dialogs"), { ssr: false });
+// Framer Motion drag runtime stays out of the public subject bundle.
+const AssignmentReorderList = dynamic(
+    () => import("@/components/subjects/assignment-reorder-list"),
+    { ssr: false },
+);
 
 function SearchIcon() {
     return (
@@ -27,7 +31,7 @@ function ChevronGlyph({ open }) {
         <svg
             viewBox="0 0 24 24"
             aria-hidden="true"
-            className={`h-5 w-5 stroke-2 transition-transform duration-300 ease-out ${open ? "rotate-180" : "rotate-0"}`}
+            className={`h-5 w-5 stroke-2 transition-transform duration-200 ease-out ${open ? "rotate-180" : "rotate-0"}`}
         >
             <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -61,12 +65,7 @@ function GroupCard({
     }
 
     return (
-        // `.loop-item` gives offscreen groups content-visibility containment so
-        // long subject pages only lay out the visible portion. It is disabled
-        // while reordering: drag-and-drop needs every row measured.
-        <section
-            className={`${isReordering ? "" : "loop-item"} overflow-visible rounded-2xl border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.06)] sm:rounded-3xl`}
-        >
+        <section className="assignment-group isolate overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.06)] sm:rounded-3xl">
             <button
                 type="button"
                 onClick={onToggle}
@@ -90,30 +89,31 @@ function GroupCard({
                 translate3d). No height interpolation: closing a group no
                 longer runs a 340ms forced-reflow loop. */}
             {isOpen ? (
-                <div
-                    className={isReordering ? "" : "gpu-enter"}
-                    style={{ overflow: isReordering ? "visible" : "hidden" }}
-                >
-                    <Reorder.Group
-                        axis="y"
-                        as="ul"
-                        values={filteredAssignments}
-                        onReorder={(next) => onReorderGroup(group.label, next)}
-                        className="relative"
-                    >
-                        {filteredAssignments.map((assignment, assignmentIndex) => (
-                            <AssignmentRow
-                                key={assignment.id}
-                                assignment={assignment}
-                                index={assignmentIndex}
-                                isAdmin={isAdmin}
-                                isReordering={isReordering}
-                                onEdit={onEdit}
-                                onInfo={onInfo}
-                                onDelete={onDelete}
-                            />
-                        ))}
-                    </Reorder.Group>
+                <div className={isReordering ? "" : "gpu-enter"}>
+                    {isReordering ? (
+                        <AssignmentReorderList
+                            assignments={filteredAssignments}
+                            isAdmin={isAdmin}
+                            onReorder={(next) => onReorderGroup(group.label, next)}
+                            onEdit={onEdit}
+                            onInfo={onInfo}
+                            onDelete={onDelete}
+                        />
+                    ) : (
+                        <ul className="relative m-0 list-none p-0">
+                            {filteredAssignments.map((assignment, assignmentIndex) => (
+                                <AssignmentRow
+                                    key={assignment.id}
+                                    assignment={assignment}
+                                    index={assignmentIndex}
+                                    isAdmin={isAdmin}
+                                    onEdit={onEdit}
+                                    onInfo={onInfo}
+                                    onDelete={onDelete}
+                                />
+                            ))}
+                        </ul>
+                    )}
                 </div>
             ) : null}
         </section>
@@ -302,9 +302,9 @@ export default function SubjectDetailClient({ subject, slug }) {
     const hasAnyAssignments = dateGroups.some((group) => group.assignments.length > 0);
 
     return (
-        <main className="min-h-screen px-2.5 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <main className="min-h-dvh px-2.5 py-4 sm:px-6 sm:py-6 lg:px-8">
             <div className="mx-auto flex w-full flex-col gap-3.5 sm:gap-5" style={{ maxWidth: 1180 }}>
-                <section className="subject-hero relative overflow-hidden rounded-[22px] border border-white/70 bg-(--panel) px-3.5 py-4 shadow-[0_20px_70px_rgba(15,23,42,0.09)] backdrop-blur-xl sm:rounded-[34px] sm:px-8 sm:py-7">
+                <section className="subject-hero relative overflow-hidden rounded-[22px] border border-white/70 bg-(--panel) px-3.5 py-4 shadow-[0_20px_70px_rgba(15,23,42,0.09)] sm:rounded-[34px] sm:px-8 sm:py-7">
                     <div
                         className="pointer-events-none absolute -right-12 top-6 h-36 w-36 rounded-full blur-3xl"
                         style={{ backgroundColor: serverSubject.tint }}
@@ -335,7 +335,7 @@ export default function SubjectDetailClient({ subject, slug }) {
                                     onClick={handleCopySubject}
                                     aria-label={isCopied ? "Assignment list copied" : "Copy assignment list"}
                                     title={isCopied ? "Copied!" : "Copy all assignments"}
-                                    className={`inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border transition-gpu duration-300 active:scale-90 ${isCopied
+                                    className={`inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border transition-gpu duration-200 ease-out active:scale-90 ${isCopied}
                                         ? "border-emerald-300 bg-emerald-50 text-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                                         : "border-slate-200/90 bg-white text-slate-600 shadow-sm hover:bg-slate-50 hover:text-blue-600"
                                         }`}
@@ -370,7 +370,7 @@ export default function SubjectDetailClient({ subject, slug }) {
                 </section>
 
                 <section
-                    className="mx-auto w-full rounded-full border border-white/80 bg-(--panel) px-4 py-2.5 shadow-[0_16px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-5 sm:py-3"
+                    className="mx-auto w-full rounded-full border border-white/80 bg-(--panel) px-4 py-2.5 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:px-5 sm:py-3"
                     style={{ maxWidth: 440 }}
                 >
                     <div className="flex items-center gap-3 text-slate-400">

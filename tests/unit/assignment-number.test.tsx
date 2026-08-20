@@ -14,6 +14,13 @@ vi.mock("@/lib/admin-session", () => ({
 }));
 vi.mock("@/lib/course-db", () => ({
   getCourseCatalog: vi.fn(async () => []),
+  getSubjectDetailsBySlug: vi.fn(async () => null),
+}));
+vi.mock("@/lib/catalog-cache", () => ({
+  catalogJsonResponse: vi.fn(async () => new Response(JSON.stringify({ subjects: [] }))),
+  readCourseCatalog: vi.fn(async () => []),
+  readSubjectBySlug: vi.fn(async () => null),
+  invalidateCourseCatalog: vi.fn(),
 }));
 vi.mock("@/lib/mongodb", () => ({
   getDatabase: vi.fn(async () => ({
