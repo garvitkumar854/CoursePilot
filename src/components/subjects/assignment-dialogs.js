@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import InlineCalendar from "@/components/inline-calendar";
+
+import DateField from "@/components/ui/date-field";
+import { Modal, ModalActions } from "@/components/ui/modal";
+import RelativeTime from "@/components/ui/relative-time";
+import { formatAbsoluteIso } from "@/lib/relative-time";
 
 function toDateInput(value) {
     if (!value) {
@@ -13,66 +17,13 @@ function toDateInput(value) {
     return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
 }
 
-function formatLong(value) {
-    if (!value) {
-        return "Not set";
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return "Not set";
-    }
-
-    return new Intl.DateTimeFormat("en-GB", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        timeZone: "UTC",
-    }).format(date);
-}
-
-function Shell({ open, onClose, title, subtitle, children, footer }) {
-    // Enter motion is pure CSS (`.gpu-fade` / `.gpu-enter-scale`): opacity +
-    // translate3d only. No JS animation runtime, no layout measurement.
-    return open ? (
-        <div
-            className="gpu-fade fixed inset-0 z-60 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-3 backdrop-blur-md sm:p-4"
-            onMouseDown={(event) => {
-                if (event.target === event.currentTarget) {
-                    onClose();
-                }
-            }}
-        >
-            <div className="gpu-enter-scale flex max-h-[calc(100dvh-2rem)] w-full max-w-[520px] flex-col rounded-2xl border border-white/15 bg-white p-4 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:p-6">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                        <h2 className="text-xl font-black tracking-[-0.04em] text-slate-900 sm:text-3xl">
-                            {title}
-                        </h2>
-                        {subtitle ? (
-                            <p className="mt-1.5 text-sm leading-6 text-slate-500">{subtitle}</p>
-                        ) : null}
-                    </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        aria-label="Close"
-                        className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                    >
-                        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4.5 w-4.5 stroke-[2]">
-                            <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" />
-                        </svg>
-                    </button>
-                </div>
-
-                <div className="contain-scroll mt-5 min-h-0 flex-1 overflow-y-auto">{children}</div>
-
-                {footer ? <div className="mt-6 shrink-0">{footer}</div> : null}
-            </div>
-        </div>
-    ) : null;
-}
+const FIELD_LABEL = "mb-1.5 block text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-400";
+const FIELD_CONTROL =
+    "rounded-control w-full border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.14)]";
+const SECONDARY_BUTTON =
+    "rounded-control min-h-11 cursor-pointer border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-60";
+const PRIMARY_BUTTON =
+    "rounded-control min-h-11 cursor-pointer bg-blue-600 px-4 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(37,99,235,0.2)] transition-gpu hover:bg-blue-700 active:scale-[0.99] disabled:bg-blue-300 disabled:shadow-none";
 
 export function EditAssignmentDialog({ open, assignment, onClose, onSave }) {
     const [assignedDate, setAssignedDate] = useState("");
@@ -111,6 +62,8 @@ export function EditAssignmentDialog({ open, assignment, onClose, onSave }) {
         try {
             await onSave({
                 title,
+                // Only outer whitespace is trimmed: interior blank lines are
+                // part of the author's formatting and must survive.
                 description: String(data.get("description") ?? "").trim(),
                 assignedDate,
             });
@@ -122,79 +75,97 @@ export function EditAssignmentDialog({ open, assignment, onClose, onSave }) {
     };
 
     return (
-        <Shell open={open} onClose={onClose} title="Edit assignment" subtitle="Update the details for this assignment.">
-            <form key={formKey} onSubmit={submit} className="space-y-3 sm:space-y-4">
+        <Modal
+            open={open}
+            onClose={saving ? () => {} : onClose}
+            dismissible={!saving}
+            size="md"
+            title="Edit assignment"
+            description="Update the details for this assignment."
+        >
+            <form id="edit-assignment-form" key={formKey} onSubmit={submit} className="space-y-3">
                 <label className="block">
-                    <span className="mb-1.5 block text-[0.68rem] font-black uppercase tracking-[0.16em] text-slate-400">
-                        Title
-                    </span>
+                    <span className={FIELD_LABEL}>Title</span>
                     <input
                         name="title"
                         defaultValue={assignment?.title ?? ""}
                         placeholder="Assignment title"
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:py-2.5"
+                        className={FIELD_CONTROL}
                     />
                 </label>
 
                 <label className="block">
-                    <span className="mb-1.5 block text-[0.68rem] font-black uppercase tracking-[0.16em] text-slate-400">
-                        Description
-                    </span>
+                    <span className={FIELD_LABEL}>Description</span>
                     <textarea
                         name="description"
                         defaultValue={assignment?.description ?? ""}
-                        placeholder="Optional description"
-                        className="min-h-20 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:min-h-24 sm:py-2.5"
+                        placeholder="Optional description — line breaks are preserved"
+                        rows={4}
+                        className={`${FIELD_CONTROL} min-h-24 resize-y leading-6`}
                     />
                 </label>
 
-                <InlineCalendar value={assignedDate} onChange={setAssignedDate} />
+                <DateField value={assignedDate} onChange={setAssignedDate} name="assignedDate" />
 
-                {error ? <p className="text-sm font-bold text-rose-600">{error}</p> : null}
+                {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
 
-                <div className="flex flex-col-reverse gap-2.5 pt-1 sm:flex-row sm:justify-end sm:gap-3">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        disabled={saving}
-                        className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-black text-slate-700 shadow-sm transition-transform duration-200 ease-out hover:bg-slate-50 active:scale-[0.98] disabled:opacity-60"
-                    >
+                <ModalActions>
+                    <button type="button" onClick={onClose} disabled={saving} className={SECONDARY_BUTTON}>
                         Cancel
                     </button>
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        className="cursor-pointer rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white shadow-[0_16px_32px_rgba(37,99,235,0.24)] transition-transform duration-200 ease-out hover:bg-blue-700 active:scale-[0.98] disabled:bg-blue-300 disabled:shadow-none"
-                    >
+                    <button type="submit" disabled={saving} className={PRIMARY_BUTTON}>
                         {saving ? "Saving..." : "Save changes"}
                     </button>
-                </div>
+                </ModalActions>
             </form>
-        </Shell>
+        </Modal>
     );
 }
 
-export function InfoAssignmentDialog({ open, assignment, subjectName, position, onClose }) {
-    const rows = [
-        { label: "Subject", value: subjectName ?? "—" },
-        { label: "Position", value: position ? `#${position}` : "—" },
-        { label: "Assigned date", value: formatLong(assignment?.assignedDate) },
-        { label: "Description", value: assignment?.description || "No description provided." },
-    ];
-
+function InfoRow({ label, children }) {
     return (
-        <Shell open={open} onClose={onClose} title="Assignment info" subtitle={assignment?.title}>
-            <dl className="space-y-3">
-                {rows.map((row) => (
-                    <div key={row.label} className="rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3">
-                        <dt className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-slate-400">
-                            {row.label}
-                        </dt>
-                        <dd className="mt-1 text-sm font-semibold leading-6 break-words text-slate-700">{row.value}</dd>
-                    </div>
-                ))}
+        <div className="rounded-control border border-slate-200 bg-slate-50/60 px-3 py-2.5">
+            <dt className="text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</dt>
+            <dd className="mt-1 text-[0.83rem] font-medium leading-6 text-slate-700 sm:text-sm">{children}</dd>
+        </div>
+    );
+}
+
+export function InfoAssignmentDialog({ open, assignment, subjectName, onClose }) {
+    return (
+        <Modal
+            open={open}
+            onClose={onClose}
+            size="md"
+            title="Assignment information"
+            description={subjectName}
+        >
+            <dl className="space-y-2.5">
+                <InfoRow label="Title">
+                    <span className="font-semibold text-slate-900">{assignment?.title ?? "—"}</span>
+                </InfoRow>
+
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                    <InfoRow label="Created by">{assignment?.createdBy || "Unknown"}</InfoRow>
+                    <InfoRow label="Created">
+                        <RelativeTime value={assignment?.createdAt} fallback={formatAbsoluteIso(assignment?.createdAt)} />
+                    </InfoRow>
+                    <InfoRow label="Updated by">{assignment?.updatedBy || assignment?.createdBy || "Unknown"}</InfoRow>
+                    <InfoRow label="Last updated">
+                        <RelativeTime value={assignment?.updatedAt} fallback={formatAbsoluteIso(assignment?.updatedAt)} />
+                    </InfoRow>
+                </div>
+
+                <InfoRow label="Assigned date">{formatAbsoluteIso(assignment?.assignedDate)}</InfoRow>
+
+                <InfoRow label="Description">
+                    {/* Plain text: line breaks preserved via CSS, never innerHTML. */}
+                    <span className="text-multiline block">
+                        {assignment?.description || "No description provided."}
+                    </span>
+                </InfoRow>
             </dl>
-        </Shell>
+        </Modal>
     );
 }
 
@@ -226,32 +197,44 @@ export function ConfirmDialog({ open, title, message, confirmLabel = "Delete", o
     };
 
     return (
-        <Shell open={open} onClose={onClose} title={title} subtitle={message}>
-            {error ? <p className="text-sm font-bold text-rose-600">{error}</p> : null}
-            <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end sm:gap-3">
-                <button
-                    type="button"
-                    onClick={onClose}
-                    disabled={busy}
-                    className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-black text-slate-700 shadow-sm transition-transform duration-200 ease-out hover:bg-slate-50 active:scale-[0.98] disabled:opacity-60"
-                >
-                    Cancel
-                </button>
-                <button
-                    type="button"
-                    onClick={confirm}
-                    disabled={busy}
-                    className="cursor-pointer rounded-2xl bg-rose-600 px-5 py-2.5 text-sm font-black text-white shadow-[0_16px_32px_rgba(225,29,72,0.24)] transition-transform duration-200 ease-out hover:bg-rose-700 active:scale-[0.98] disabled:bg-rose-300 disabled:shadow-none"
-                >
-                    {busy ? "Working..." : confirmLabel}
-                </button>
-            </div>
-        </Shell>
+        <Modal
+            open={open}
+            onClose={onClose}
+            role="alertdialog"
+            size="sm"
+            showClose={false}
+            dismissible={!busy}
+            title={title}
+            description={message}
+            footer={
+                <ModalActions>
+                    <button type="button" onClick={onClose} disabled={busy} className={SECONDARY_BUTTON}>
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        onClick={confirm}
+                        disabled={busy}
+                        className="rounded-control min-h-11 cursor-pointer bg-rose-600 px-4 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(225,29,72,0.2)] transition-gpu hover:bg-rose-700 active:scale-[0.99] disabled:bg-rose-300 disabled:shadow-none"
+                    >
+                        {busy ? "Working..." : confirmLabel}
+                    </button>
+                </ModalActions>
+            }
+        >
+            {error ? (
+                <p role="alert" className="text-sm font-medium text-rose-600">
+                    {error}
+                </p>
+            ) : (
+                <p className="text-[0.8rem] font-medium text-rose-600 sm:text-sm">This action cannot be undone.</p>
+            )}
+        </Modal>
     );
 }
 
 /** Deferred dialog bundle used by the assignment page. */
-export default function AssignmentDialogs({ dialog, subjectName, position, onClose, onSave, onDelete }) {
+export default function AssignmentDialogs({ dialog, subjectName, onClose, onSave, onDelete }) {
     return (
         <>
             <EditAssignmentDialog
@@ -264,7 +247,6 @@ export default function AssignmentDialogs({ dialog, subjectName, position, onClo
                 open={dialog?.type === "info"}
                 assignment={dialog?.assignment}
                 subjectName={subjectName}
-                position={position}
                 onClose={onClose}
             />
             <ConfirmDialog

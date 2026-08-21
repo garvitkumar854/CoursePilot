@@ -21,7 +21,7 @@ function GripIcon() {
     );
 }
 
-function ReorderAssignmentRow({ assignment, index, isAdmin, onEdit, onInfo, onDelete }) {
+function ReorderAssignmentRow({ assignment, isAdmin, onEdit, onInfo, onDelete }) {
     const dragControls = useDragControls();
     const [isDragging, setIsDragging] = useState(false);
     const y = useMotionValue(0);
@@ -40,7 +40,6 @@ function ReorderAssignmentRow({ assignment, index, isAdmin, onEdit, onInfo, onDe
         >
             <AssignmentRowBody
                 assignment={assignment}
-                index={index}
                 isAdmin={isAdmin}
                 showGrip
                 gripIcon={<GripIcon />}
@@ -70,11 +69,10 @@ export default function AssignmentReorderList({
             onReorder={onReorder}
             className="relative m-0 list-none p-0"
         >
-            {assignments.map((assignment, assignmentIndex) => (
+            {assignments.map((assignment) => (
                 <ReorderAssignmentRow
                     key={assignment.id}
                     assignment={assignment}
-                    index={assignmentIndex}
                     isAdmin={isAdmin}
                     onEdit={onEdit}
                     onInfo={onInfo}

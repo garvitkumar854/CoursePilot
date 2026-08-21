@@ -144,4 +144,32 @@ test.describe("mobile viewport stability", () => {
     expect(after?.y).toBeCloseTo(before?.y ?? 0, 0);
     expect(after?.width).toBeCloseTo(before?.width ?? 0, 0);
   });
+
+  test("every dialog backdrop covers the navbar", async ({ page }) => {
+    await mockAdminState(page, true);
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Subject actions" }).first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Subject actions" }).first().click();
+    await page.getByRole("button", { name: "Delete", exact: true }).first().click();
+    await expect(page.getByRole("alertdialog")).toBeVisible();
+
+    // The topmost element over the navbar must be the modal backdrop (or part
+    // of it), never the navbar itself: dialogs are portaled to <body>, so the
+    // page's `relative z-10` stacking context cannot trap them underneath.
+    const navbarIsCovered = await page.evaluate(() => {
+      const header = document.querySelector("header");
+      if (!header) return false;
+
+      const box = header.getBoundingClientRect();
+      const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+
+      return Boolean(hit?.closest("[data-modal-backdrop]"));
+    });
+
+    expect(navbarIsCovered).toBe(true);
+
+    await page.getByRole("button", { name: "Keep subject" }).click();
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  });
 });

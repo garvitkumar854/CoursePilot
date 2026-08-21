@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb";
 import { catalogJsonResponse } from "@/lib/catalog-cache";
 import { getAdminSession } from "@/lib/admin-session";
+import { adminDisplayName } from "@/lib/admin-identity";
 
 export async function GET(_request, { params }) {
     const session = await getAdminSession();
@@ -68,15 +69,21 @@ export async function POST(request, { params }) {
     const nextIndex = (Number(sequence?.maximumOrder) || 0) + 1;
     const assignmentNumber = (Number(sequence?.maximumNumber) || 0) + 1;
 
+    const author = adminDisplayName(session);
+
     const insertResult = await database.collection("assignments").insertOne({
         subjectId: subject._id,
         assignmentNumber,
         title: trimmedTitle,
+        // Only outer whitespace is trimmed so the author's blank lines and
+        // paragraph breaks are stored exactly as typed.
         description: String(description ?? "").trim(),
         assignedDate: assignedDate ? new Date(assignedDate) : now,
         order: nextIndex,
         isActive: true,
-        updatedBy: session.username ?? session.email ?? "admin",
+        // Audit fields come from the verified server session only.
+        createdBy: author,
+        updatedBy: author,
         createdAt: now,
         updatedAt: now,
     });

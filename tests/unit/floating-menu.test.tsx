@@ -22,7 +22,8 @@ describe("assignment action menu portal", () => {
     const menu = screen.getByRole("menu");
     expect(menu.parentElement).toBe(document.body);
     expect(container.contains(menu)).toBe(false);
-    expect(menu.className).toMatch(/z-50/);
+    // Above the navbar (z-40) but below the modal backdrop (z-100).
+    expect(menu.className).toMatch(/z-\[90\]/);
     anchor.remove();
   });
 });

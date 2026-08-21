@@ -1,20 +1,25 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // These interactive surfaces stay out of the dashboard bundle until requested.
 const AuthModal = dynamic(() => import("@/components/auth/auth-modal"), { ssr: false });
 const UploadAssignmentsModal = dynamic(() => import("@/components/subjects/upload-assignments-modal"), { ssr: false });
-const InlineCalendar = dynamic(() => import("@/components/inline-calendar"), { ssr: false });
+const DateField = dynamic(() => import("@/components/ui/date-field"), { ssr: false });
+import { Modal, ModalActions } from "@/components/ui/modal";
 import { subjects as seedSubjects } from "@/lib/course-data";
 
 const AdminContext = createContext(null);
 
 function normalizeAssignment(assignment, index, groupLabel) {
     return {
+        ...assignment,
         id: assignment.id ?? crypto.randomUUID(),
+        // `number` is the server-derived chronological sequence (oldest = 1)
+        // and must never be recomputed from a render position.
+        number: assignment.number ?? assignment.order ?? index + 1,
         order: assignment.order ?? index + 1,
         title: assignment.title,
         description: assignment.description ?? "",
@@ -27,6 +32,7 @@ function normalizeSubject(subject) {
         ...subject,
         dateGroups: (subject.dateGroups ?? []).map((group) => ({
             ...group,
+            sortKey: group.sortKey ?? 0,
             assignments: (group.assignments ?? []).map((assignment, index) => normalizeAssignment(assignment, index, group.label)),
         })),
     };
@@ -41,65 +47,45 @@ function getNextAssignmentNumber(subject) {
     return assignments.reduce((maximum, assignment) => Math.max(maximum, Number(assignment.order) || 0), 0) + 1;
 }
 
-function CloseIcon() {
-    return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 stroke-[1.9]">
-            <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-function EyeIcon() {
-    return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4.5 w-4.5 stroke-[1.8]">
-            <path
-                d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" />
-        </svg>
-    );
-}
+const FIELD_LABEL = "mb-1.5 block text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-400";
+const FIELD_CONTROL =
+    "rounded-control w-full border border-slate-200 bg-white px-3 text-sm font-normal text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.14)]";
+const SECONDARY_BUTTON =
+    "rounded-control min-h-11 cursor-pointer border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60";
+const PRIMARY_BUTTON =
+    "rounded-control min-h-11 cursor-pointer bg-blue-600 px-4 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(37,99,235,0.2)] transition-gpu hover:bg-blue-700 active:scale-[0.99] disabled:cursor-wait disabled:bg-blue-300 disabled:shadow-none";
 
 function Input({ label, ...props }) {
     return (
         <label className="block">
-            <span className="mb-1.5 block text-xs font-black text-slate-700 sm:mb-2 sm:text-sm">{label}</span>
-            <input
-                {...props}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:px-4 sm:py-3 sm:text-[0.98rem]"
-            />
+            <span className={FIELD_LABEL}>{label}</span>
+            <input {...props} className={`${FIELD_CONTROL} min-h-11`} />
         </label>
     );
 }
 
-function ModalShell({ title, subtitle, onClose, children, widthClass = "max-w-[460px]" }) {
+function ModalShell({ title, subtitle, onClose, children, size = "md" }) {
+    // Every admin surface now shares one portal-based modal: identical
+    // backdrop, centering, scroll lock and radius, and the navbar sits behind
+    // the backdrop because the portal escapes the page stacking context.
     return (
-        <div className="gpu-fade fixed inset-0 z-50 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-3 backdrop-blur-md sm:p-4">
-            <div className={`premium-dialog contain-scroll relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto ${widthClass} rounded-2xl border border-white/15 bg-white p-4 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:p-6`}>
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="absolute right-3.5 top-3.5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 sm:right-5 sm:top-5 sm:h-11 sm:w-11"
-                    aria-label="Close modal"
-                >
-                    <CloseIcon />
-                </button>
-
-                <p className="pr-11 text-[0.65rem] font-black uppercase tracking-[0.25em] text-blue-600 sm:text-xs sm:tracking-[0.28em]">Admin Access</p>
-                <h2 className="mt-1.5 pr-11 text-[1.75rem] font-black tracking-[-0.055em] text-slate-900 sm:mt-2 sm:text-4xl">{title}</h2>
-                <p className="mt-2 max-w-md text-[0.8rem] leading-5.5 text-slate-500 sm:mt-3 sm:text-sm sm:leading-6">{subtitle}</p>
-
-                <div className="mt-6">{children}</div>
-            </div>
-        </div>
+        <Modal
+            open
+            onClose={onClose}
+            size={size}
+            closeLabel="Close modal"
+            header={
+                <div className="pr-10">
+                    <p className="text-[0.6rem] font-semibold uppercase tracking-[0.22em] text-blue-600">Admin access</p>
+                    <h2 className="mt-1 text-[1.05rem] font-semibold tracking-[-0.02em] text-slate-900 sm:text-xl">{title}</h2>
+                    <p className="mt-1.5 max-w-md text-[0.8rem] leading-5 text-slate-500 sm:text-sm sm:leading-6">{subtitle}</p>
+                </div>
+            }
+        >
+            {children}
+        </Modal>
     );
 }
-
-
 
 function SubjectModal({ open, subject, onClose, onCreate }) {
     const colors = useMemo(() => ["#2563eb", "#8b5cf6", "#ec4899", "#10b981", "#f59e0b", "#14b8a6", "#f97316", "#ef4444", "#06b6d4", "#6366f1"], []);
@@ -143,8 +129,8 @@ function SubjectModal({ open, subject, onClose, onCreate }) {
                 <Input label="Subject name" name="subjectName" defaultValue={subject?.name ?? ""} onInput={() => setError("")} placeholder="e.g. Artificial Intelligence" autoFocus required />
 
                 <div>
-                    <span className="mb-2 block text-sm font-black text-slate-700">Accent color</span>
-                    <div className="flex flex-wrap gap-3">
+                    <span className={FIELD_LABEL}>Accent color</span>
+                    <div className="flex flex-wrap gap-2.5">
                         {colors.map((color) => (
                             <button
                                 key={color}
@@ -159,28 +145,26 @@ function SubjectModal({ open, subject, onClose, onCreate }) {
                     </div>
                 </div>
 
-                {error ? <p role="alert" className="rounded-xl border border-rose-100 bg-rose-50 px-3.5 py-2.5 text-sm font-bold text-rose-600">{error}</p> : null}
+                {error ? <p role="alert" className="rounded-control border border-rose-100 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600">{error}</p> : null}
 
-                <div className="flex flex-col-reverse gap-2.5 pt-1 sm:flex-row sm:justify-end sm:gap-3">
-                    <button type="button" onClick={onClose} disabled={saving} className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
+                <ModalActions>
+                    <button type="button" onClick={onClose} disabled={saving} className={SECONDARY_BUTTON}>
                         Cancel
                     </button>
-                    <button type="submit" disabled={saving} className="cursor-pointer rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-[0_18px_35px_rgba(37,99,235,0.26)] disabled:cursor-wait disabled:bg-blue-400">
+                    <button type="submit" disabled={saving} className={PRIMARY_BUTTON}>
                         {saving ? "Saving..." : subject ? "Save changes" : "Create subject"}
                     </button>
-                </div>
+                </ModalActions>
             </form>
         </ModalShell>
     );
 }
 
 export function AssignmentModal({ open, onClose, onCreate, subjectName, subjectSlug, fallbackNumber }) {
-    // Uncontrolled form: title/description live in native inputs; the date
-    // input is synced with the calendar through a ref. Values are read once
-    // from FormData on submit, so typing never re-renders the modal tree.
-    const dateInputRef = useRef(null);
+    // Uncontrolled form: title/description live in native inputs; only the
+    // date is React state (it drives the single calendar trigger). Values are
+    // read once from FormData on submit, so typing never re-renders the tree.
     const [assignedDate, setAssignedDate] = useState(() => new Date().toISOString().slice(0, 10));
-    const [calendarOpen, setCalendarOpen] = useState(false);
     const nextNumberQuery = useQuery({
         queryKey: ["assignment-next-number", subjectSlug],
         enabled: Boolean(open && subjectSlug),
@@ -217,57 +201,41 @@ export function AssignmentModal({ open, onClose, onCreate, subjectName, subjectS
         onClose();
     };
 
-    const pickDate = (value) => {
-        setAssignedDate(value);
-        if (dateInputRef.current) {
-            dateInputRef.current.value = value;
-        }
-        setCalendarOpen(false);
-    };
-
     return (
         <ModalShell
-            widthClass="max-w-[560px]"
-            title="Add Assignment"
+            size="md"
+            title="Add assignment"
             subtitle={`Create a new assignment under ${subjectName ?? "this subject"}.`}
             onClose={onClose}
         >
-            <form onSubmit={submit} className="space-y-3.5 sm:space-y-4">
-                <div className="grid gap-3 sm:grid-cols-[96px_minmax(0,1fr)]">
-                    <Input label="No." value={numberLoading ? "…" : number} readOnly aria-readonly="true" placeholder="Calculating…" />
-                    <Input label="Assignment title" name="title" defaultValue="" placeholder="Assignment title" />
+            <form onSubmit={submit} className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-[5.5rem_minmax(0,1fr)]">
+                    <Input label="No." value={numberLoading ? "…" : number} readOnly aria-readonly="true" placeholder="…" />
+                    <Input label="Title" name="title" defaultValue="" placeholder="Assignment title" autoFocus />
                 </div>
 
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-black text-slate-700 sm:mb-2 sm:text-sm">Description (optional)</span>
+                    <span className={FIELD_LABEL}>Description (optional)</span>
                     <textarea
                         name="description"
                         defaultValue=""
-                        placeholder="Brief assignment details, resources, or links..."
-                        className="min-h-20 w-full resize-y rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)] sm:px-4 sm:text-[0.92rem]"
+                        rows={3}
+                        placeholder="Brief details, resources or links — line breaks are preserved"
+                        className={`${FIELD_CONTROL} min-h-20 resize-y py-2 leading-6`}
                     />
                 </label>
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <label className="text-xs font-bold text-slate-600">Assigned date
-                            <input ref={dateInputRef} type="date" name="assignedDate" defaultValue={assignedDate} onChange={(event) => setAssignedDate(event.target.value)} className="mt-1 block min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-300" />
-                        </label>
-                        <button type="button" onClick={() => setCalendarOpen((current) => !current)} className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50">
-                            {calendarOpen ? "Hide calendar" : "Choose from calendar"}
-                        </button>
-                    </div>
-                    {calendarOpen ? <div className="mt-3"><InlineCalendar value={assignedDate} onChange={pickDate} /></div> : null}
-                </div>
+                {/* ONE calendar trigger, integrated with the date value. */}
+                <DateField value={assignedDate} onChange={setAssignedDate} name="assignedDate" />
 
-                <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end sm:gap-3">
-                    <button type="button" onClick={onClose} className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm">
+                <ModalActions>
+                    <button type="button" onClick={onClose} className={SECONDARY_BUTTON}>
                         Cancel
                     </button>
-                    <button type="submit" className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-[0_18px_35px_rgba(37,99,235,0.26)]">
-                        Create Assignment
+                    <button type="submit" className={PRIMARY_BUTTON}>
+                        Create assignment
                     </button>
-                </div>
+                </ModalActions>
             </form>
         </ModalShell>
     );

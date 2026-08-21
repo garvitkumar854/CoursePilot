@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Poppins } from "next/font/google";
+import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 
 import { AdminProvider } from "@/components/admin/admin-provider";
@@ -13,18 +13,12 @@ export const revalidate = 60;
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://coursepilot.app";
 
+// One optimized family for the whole product. Only the four weights the
+// typography scale actually uses are downloaded (400/500/600/700).
 const inter = Inter({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-inter",
-  display: "swap",
-  preload: true,
-  adjustFontFallback: true,
-});
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["600", "700", "800", "900"],
-  variable: "--font-poppins",
   display: "swap",
   preload: true,
   adjustFontFallback: true,
@@ -168,7 +162,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${poppins.variable} h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
