@@ -77,7 +77,7 @@ function Field({ label, className = "", ...props }) {
             </span>
             <input
                 {...props}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
+                className="rounded-control w-full border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.14)]"
             />
         </label>
     );
@@ -90,9 +90,9 @@ function PreviewRow({ assignment, index, onChange, onRemove }) {
     // keystrokes, so a 40-row import costs one paint per character, not 40
     // re-renders plus layout animation.
     return (
-        <div className="gpu-enter rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-3.5">
+        <div className="gpu-enter rounded-control border border-slate-200 bg-white p-3 shadow-sm">
             <div className="flex items-start gap-3">
-                <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-500">
+                <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500">
                     {index + 1}
                 </span>
 
@@ -272,7 +272,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
     // list structure changes re-render plain DOM only.
     return open ? (
         <div
-            className="gpu-fade fixed inset-0 z-50 grid min-h-[100dvh] place-items-center overflow-y-auto bg-black/40 p-3 backdrop-blur-md sm:p-4"
+            className="modal-backdrop gpu-fade fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-contain p-3 sm:p-5"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) {
                     handleClose();
@@ -280,23 +280,23 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
             }}
         >
             <div
-                className={`gpu-enter-scale relative flex max-h-[calc(100dvh-2rem)] w-full flex-col rounded-2xl border border-white/15 bg-white p-4 shadow-[0_40px_100px_rgba(15,23,42,0.24)] sm:p-8 ${hasPreview ? "max-w-[680px]" : "max-w-[560px]"
+                className={`gpu-enter-scale modal-surface rounded-card relative my-auto flex max-h-[calc(100dvh-1.5rem)] w-full flex-col border border-white/15 p-4 shadow-[0_30px_90px_rgba(15,23,42,0.22)] sm:max-h-[calc(100dvh-2.5rem)] sm:p-6 ${hasPreview ? "max-w-[42rem]" : "max-w-[34rem]"
                     }`}
             >
                 <button
                     type="button"
                     onClick={handleClose}
-                    className="absolute right-5 top-5 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                    className="rounded-control absolute right-3 top-3 flex h-9 w-9 cursor-pointer items-center justify-center bg-slate-50 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 sm:right-4 sm:top-4"
                     aria-label="Close modal"
                 >
                     <CloseIcon />
                 </button>
 
-                <div className="shrink-0 pr-12">
-                    <h2 className="text-2xl font-black tracking-[-0.05em] text-slate-900 sm:text-4xl">
+                <div className="shrink-0 pr-10">
+                    <h2 className="text-[1.05rem] font-semibold tracking-[-0.02em] text-slate-900 sm:text-xl">
                         Upload assignments
                     </h2>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                    <p className="mt-1.5 text-[0.8rem] leading-5 text-slate-500 sm:text-sm sm:leading-6">
                         {hasPreview
                             ? `Review and edit before importing into ${subjectName ?? "this subject"}.`
                             : "Import multiple assignments from one formatted text file."}
@@ -316,7 +316,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
                                     if (!event.currentTarget.contains(event.relatedTarget)) setIsDragging(false);
                                 }}
                                 onDrop={handleDrop}
-                                className={`group grid min-h-52 cursor-pointer place-items-center rounded-2xl border-2 border-dashed p-5 text-center transition-gpu duration-200 ${isDragging ? "border-blue-500 bg-blue-50 text-blue-600 shadow-[0_0_0_5px_rgba(59,130,246,0.10)]" : "border-slate-300 bg-slate-50/70 text-slate-500 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600"}`}
+                                className={`group grid min-h-52 cursor-pointer place-items-center rounded-card border-2 border-dashed p-5 text-center transition-gpu duration-200 ${isDragging ? "border-blue-500 bg-blue-50 text-blue-600 shadow-[0_0_0_5px_rgba(59,130,246,0.10)]" : "border-slate-300 bg-slate-50/70 text-slate-500 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600"}`}
                             >
                                 <input
                                     ref={fileInputRef}
@@ -326,7 +326,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
                                     className="sr-only"
                                 />
                                 <span className="flex flex-col items-center">
-                                    <span className="drop-zone-icon grid size-20 place-items-center rounded-2xl bg-white shadow-[0_14px_35px_rgba(15,23,42,0.10)] transition-transform duration-200 group-hover:-translate-y-1">
+                                    <span className="drop-zone-icon rounded-control grid size-16 place-items-center bg-white shadow-[0_14px_35px_rgba(15,23,42,0.10)] transition-transform duration-200 group-hover:-translate-y-1">
                                         <DropZoneIcon />
                                     </span>
                                     <strong className="font-poppins mt-4 text-base font-bold text-slate-800">
@@ -349,7 +349,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
 
                         {parseErrors.length ? (
                             <div className="gpu-enter">
-                                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                                <div className="rounded-control border border-amber-200 bg-amber-50 p-3.5">
                                     <p className="flex items-center gap-2 text-sm font-black text-amber-800">
                                         <WarningIcon />
                                         {parseErrors.length} line{parseErrors.length === 1 ? "" : "s"} could not be read
@@ -393,7 +393,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
                                 ))}
                             </div>
                         ) : (
-                            <div className="gpu-enter rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                            <div className="gpu-enter rounded-control border border-slate-200 bg-slate-50/70 p-3.5">
                                 <p className="text-sm font-black text-slate-700">Required format</p>
                                 <pre className="mt-2.5 overflow-x-auto whitespace-pre text-[0.72rem] leading-5 text-slate-500">
                                     {IMPORT_FORMAT_SAMPLE}
@@ -420,7 +420,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
                             type="button"
                             onClick={handleClose}
                             disabled={isSubmitting}
-                            className="cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="rounded-control min-h-11 cursor-pointer border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             Cancel
                         </button>
@@ -428,7 +428,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
                             type="button"
                             onClick={handleImport}
                             disabled={!hasPreview || isSubmitting}
-                            className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-[0_18px_35px_rgba(37,99,235,0.26)] transition-gpu hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-blue-300 disabled:shadow-none"
+                            className="rounded-control inline-flex min-h-11 cursor-pointer items-center gap-2 bg-blue-600 px-4 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(37,99,235,0.2)] transition-gpu hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-blue-300 disabled:shadow-none"
                         >
                             <UploadIcon />
                             {isSubmitting

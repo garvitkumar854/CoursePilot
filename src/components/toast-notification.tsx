@@ -44,7 +44,7 @@ export function ToastNotification({
       role={tone === "error" ? "alert" : "status"}
       aria-atomic="true"
       data-state={exiting ? "closed" : "open"}
-      className={`toast-notification pointer-events-none grid min-h-20 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-2xl border bg-white/95 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.16)] backdrop-blur-xl ${toneStyles[tone]}`}
+      className={`toast-notification pointer-events-none grid min-h-20 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-card border bg-white/95 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.16)] backdrop-blur-xl ${toneStyles[tone]}`}
     >
       <span
         className="mt-1 size-2.5 shrink-0 rounded-full bg-current shadow-[0_0_0_5px_currentColor] opacity-75"

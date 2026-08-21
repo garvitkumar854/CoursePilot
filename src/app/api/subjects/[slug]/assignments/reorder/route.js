@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb";
 import { catalogJsonResponse } from "@/lib/catalog-cache";
 import { getAdminSession } from "@/lib/admin-session";
+import { adminDisplayName } from "@/lib/admin-identity";
 
 /**
  * Applies a full reorder in one shot. The client sends the complete ordered
@@ -56,7 +57,7 @@ export async function POST(request, { params }) {
         );
     }
 
-    const updatedBy = session.username ?? session.email ?? "admin";
+    const updatedBy = adminDisplayName(session);
 
     await database.collection("assignments").bulkWrite(
         orderedIds.map((id, index) => ({

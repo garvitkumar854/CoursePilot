@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb";
 import { catalogJsonResponse } from "@/lib/catalog-cache";
 import { getAdminSession } from "@/lib/admin-session";
+import { adminDisplayName } from "@/lib/admin-identity";
 
 function parseAssignmentId(value) {
     if (!ObjectId.isValid(value)) {
@@ -120,7 +121,7 @@ export async function PATCH(request, { params }) {
                     $set: {
                         order: neighbor[0].order,
                         updatedAt: now,
-                        updatedBy: session.username ?? session.email ?? "admin",
+                        updatedBy: adminDisplayName(session),
                     },
                 },
             ),
@@ -130,7 +131,7 @@ export async function PATCH(request, { params }) {
                     $set: {
                         order: assignment.order,
                         updatedAt: now,
-                        updatedBy: session.username ?? session.email ?? "admin",
+                        updatedBy: adminDisplayName(session),
                     },
                 },
             ),
@@ -197,8 +198,14 @@ export async function PUT(request, { params }) {
         title,
         description,
         updatedAt: now,
-        updatedBy: session.username ?? session.email ?? "admin",
+        // `updatedBy` always reflects the editing admin; `createdBy` is only
+        // written when a legacy document has none, and is never overwritten.
+        updatedBy: adminDisplayName(session),
     };
+
+    if (!assignment.createdBy) {
+        update.createdBy = assignment.updatedBy ?? adminDisplayName(session);
+    }
 
     if (assignedDate) {
         const [year, month, day] = assignedDate.split("-").map(Number);

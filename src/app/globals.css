@@ -9,6 +9,24 @@
   --surface-muted: #f8fafc;
   --text-strong: #0f172a;
   --text-muted: #64748b;
+
+  /* ── RADIUS SYSTEM ───────────────────────────────────────────────────────
+     One reference radius, taken from the Subject Card, reused by every
+     surface in the app. The navbar is the documented exception and keeps its
+     own pill/independent shape. */
+  --radius-card: 20px;
+  --radius-control: 12px;
+  --radius-pill: 9999px;
+
+  /* Modal backdrop: identical for every dialog in the app. */
+  --modal-backdrop: rgba(15, 23, 42, 0.42);
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --radius-card: 24px;
+    --radius-control: 14px;
+  }
 }
 
 html[data-theme="dark"] {
@@ -20,6 +38,7 @@ html[data-theme="dark"] {
   --surface-muted: #162238;
   --text-strong: #f8fafc;
   --text-muted: #a7b4c8;
+  --modal-backdrop: rgba(2, 8, 20, 0.58);
   color-scheme: dark;
 }
 
@@ -55,7 +74,7 @@ body {
     radial-gradient(circle at 85% 10%, rgba(147, 197, 253, 0.25), transparent 22%),
     linear-gradient(180deg, #faf8f4 0%, #f3efe7 100%);
   color: var(--foreground);
-  font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-family: var(--font-inter), Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   margin: 0;
   padding: 0;
   overscroll-behavior-y: contain;
@@ -275,6 +294,9 @@ html[data-theme="dark"] .assignment-target:target {
   font-family: var(--font-inter), Inter, Arial, sans-serif;
 }
 
+/* Single family across the product: Inter (see `app/layout.tsx`). The legacy
+   `.font-poppins` hook is kept so existing markup does not break, but it now
+   resolves to the same optimized Inter stack. */
 .font-poppins,
 h1,
 h2,
@@ -282,7 +304,8 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-poppins), Poppins, Arial, sans-serif;
+  font-family: var(--font-inter), Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  letter-spacing: -0.015em;
 }
 
 /* Theme colors are committed in one paint. The selector includes pseudo
@@ -293,10 +316,6 @@ h6 {
 .theme-toggle .theme-sun,
 .theme-toggle .theme-moon {
   transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease, background-color 180ms ease, color 180ms ease !important;
-}
-
-h1, h2, h3 {
-  font-weight: 700 !important;
 }
 
 html {
@@ -371,13 +390,7 @@ html {
 .assignment-group {
   isolation: isolate;
   overflow: hidden;
-  border-radius: 1rem;
-}
-
-@media (min-width: 40rem) {
-  .assignment-group {
-    border-radius: 1.5rem;
-  }
+  border-radius: var(--radius-card);
 }
 
 .micro-interact {
@@ -554,4 +567,85 @@ html {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   5. RADIUS + MODAL TOKENS
+   `.rounded-card` is the single reference radius (Subject Card). Everything
+   that is not the navbar uses it, or `.rounded-control` for inputs/buttons
+   nested inside a card so the corners stay optically concentric.
+   ───────────────────────────────────────────────────────────────────────── */
+.rounded-card {
+  border-radius: var(--radius-card);
+}
+
+.rounded-control {
+  border-radius: var(--radius-control);
+}
+
+.rounded-pill {
+  border-radius: var(--radius-pill);
+}
+
+.modal-backdrop {
+  background-color: var(--modal-backdrop);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+}
+
+.modal-surface {
+  background-color: var(--surface-solid);
+}
+
+/* Assignment groups follow the same radius reference as the Subject Card. */
+.assignment-group,
+.assignment-group:first-child {
+  border-radius: var(--radius-card);
+}
+
+@media (min-width: 40rem) {
+  .assignment-group {
+    border-radius: var(--radius-card);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   6. TYPOGRAPHY HIERARCHY
+   Inter for everything; weights limited to 400/500/600/700. Headings are no
+   longer forced to a single weight — hierarchy comes from size + weight.
+   ───────────────────────────────────────────────────────────────────────── */
+h1 {
+  font-weight: 700;
+}
+
+h2,
+h3 {
+  font-weight: 600;
+}
+
+h4,
+h5,
+h6 {
+  font-weight: 600;
+}
+
+/* Plain-text descriptions keep the author's line breaks without any HTML
+   injection: newlines render, runs of spaces collapse, long words wrap. */
+.text-multiline {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* Expand/collapse: one short compositor-only animation on the container.
+   Rows are NOT animated individually, so a 500-item group costs the same as
+   a 5-item one. */
+.group-panel {
+  animation: group-expand 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top center;
+}
+
+@keyframes group-expand {
+  from { opacity: 0; transform: translate3d(0, -0.25rem, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }

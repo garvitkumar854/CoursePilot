@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb";
 import { catalogJsonResponse } from "@/lib/catalog-cache";
 import { getAdminSession } from "@/lib/admin-session";
+import { adminDisplayName } from "@/lib/admin-identity";
 import { validateImportAssignments } from "@/lib/assignment-import";
 
 function toUtcDate(value) {
@@ -38,7 +39,7 @@ export async function POST(request, { params }) {
         return NextResponse.json({ message: "Subject not found." }, { status: 404 });
     }
 
-    const updatedBy = session.username ?? session.email ?? "admin";
+    const updatedBy = adminDisplayName(session);
 
     const documents = incoming.map((assignment, index) => ({
         subjectId: subject._id,
@@ -50,6 +51,7 @@ export async function POST(request, { params }) {
         order: index + 1,
         isActive: true,
         importedAt: now,
+        createdBy: updatedBy,
         updatedBy,
         createdAt: now,
         updatedAt: now,

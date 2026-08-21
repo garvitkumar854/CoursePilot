@@ -83,7 +83,7 @@ function RowActions({ assignment, menuOpen, setMenuOpen, onEdit, onInfo, onDelet
                     type="button"
                     role="menuitem"
                     onClick={() => runAction(onEdit)}
-                    className="micro-interact flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                    className="rounded-control micro-interact flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
                     <EditIcon />
                     Edit
@@ -92,7 +92,7 @@ function RowActions({ assignment, menuOpen, setMenuOpen, onEdit, onInfo, onDelet
                     type="button"
                     role="menuitem"
                     onClick={() => runAction(onInfo)}
-                    className="micro-interact flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                    className="rounded-control micro-interact flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
                     <InfoIcon />
                     Info
@@ -101,7 +101,7 @@ function RowActions({ assignment, menuOpen, setMenuOpen, onEdit, onInfo, onDelet
                     type="button"
                     role="menuitem"
                     onClick={() => runAction(onDelete)}
-                    className="micro-interact flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-bold text-rose-500 hover:bg-rose-50"
+                    className="rounded-control micro-interact flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-sm font-medium text-rose-500 hover:bg-rose-50"
                 >
                     <TrashIcon />
                     Delete
@@ -113,7 +113,6 @@ function RowActions({ assignment, menuOpen, setMenuOpen, onEdit, onInfo, onDelet
 
 export function AssignmentRowBody({
     assignment,
-    index,
     isAdmin,
     showGrip = false,
     onGripPointerDown,
@@ -134,22 +133,27 @@ export function AssignmentRowBody({
                         event.preventDefault();
                         onGripPointerDown?.(event);
                     }}
-                    className="mt-0.5 flex h-9 w-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-500 active:cursor-grabbing sm:w-8"
+                    className="mt-0.5 flex h-9 w-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-control text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-500 active:cursor-grabbing sm:w-8"
                 >
                     {gripIcon}
                 </button>
             ) : null}
 
-            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-[0.68rem] font-extrabold text-slate-500 ring-1 ring-emerald-100 sm:h-9 sm:w-9 sm:text-sm">
-                {index + 1}
+            {/* Chronological sequence number (oldest = 1), derived server-side
+                and continuous across every date group. It is intentionally NOT
+                the render index, so flipping the sort order never renumbers. */}
+            <span className="mt-0.5 flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 px-1.5 text-[0.68rem] font-semibold text-slate-600 ring-1 ring-emerald-100 sm:h-9 sm:min-w-9 sm:text-[0.82rem]">
+                {assignment.number ?? assignment.order}
             </span>
 
             <div className="min-w-0 flex-1">
-                <h3 className="text-[0.84rem] font-extrabold leading-snug text-slate-800 sm:text-[1.03rem]">
+                <h3 className="text-[0.86rem] font-medium leading-snug text-slate-800 sm:text-[1rem] sm:font-semibold">
                     {assignment.title}
                 </h3>
                 {assignment.description ? (
-                    <p className="mt-1 line-clamp-3 text-[0.74rem] leading-5 text-slate-500 sm:text-sm sm:leading-6">
+                    /* `text-multiline` = white-space: pre-line, so the admin's
+                       blank lines survive without any HTML injection. */
+                    <p className="text-multiline mt-1 line-clamp-3 text-[0.76rem] font-normal leading-5 text-slate-500 sm:text-[0.86rem] sm:leading-6">
                         {assignment.description}
                     </p>
                 ) : null}
@@ -171,7 +175,6 @@ export function AssignmentRowBody({
 
 export default function AssignmentRow({
     assignment,
-    index,
     isAdmin,
     onEdit,
     onInfo,
@@ -184,7 +187,6 @@ export default function AssignmentRow({
         >
             <AssignmentRowBody
                 assignment={assignment}
-                index={index}
                 isAdmin={isAdmin}
                 onEdit={onEdit}
                 onInfo={onInfo}
