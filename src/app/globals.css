@@ -1,5 +1,31 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────────────────
+   0. MOTION TOKENS
+   Tailwind ships `--default-transition-duration: 150ms` paired with a
+   symmetric `cubic-bezier(0.4, 0, 0.2, 1)`. Most `transition-*` utilities in
+   this app declare no duration of their own, so they ran on that default while
+   the rest used `duration-200` — two different feels sitting side by side, on
+   a curve that eases *in* as well as out and therefore reads as hesitant on
+   hover and press.
+
+   Overriding the two defaults retunes every `transition-*` utility in one
+   place: a single duration and a single ease-out curve (respond immediately,
+   settle gently) across hover, press and color changes. Anything that needs to
+   differ still can with `duration-*` / `ease-*`.
+   ───────────────────────────────────────────────────────────────────────── */
+@theme {
+  --default-transition-duration: 200ms;
+  --default-transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Press depth scales inversely with element size, so a shrink reads as the same
+   physical "give" regardless of the target:
+     active:scale-[0.96]  small icon buttons (h-8 / h-9)
+     active:scale-[0.97]  standard controls (h-10 / h-11)
+     active:scale-[0.99]  full-width surfaces (dialog submit buttons)
+   Deeper values on large surfaces look like the whole panel is collapsing. */
+
 :root {
   --background: #f5f3ee;
   --foreground: #162033;
@@ -181,6 +207,15 @@ html[data-theme="dark"] [class~="bg-slate-200/80"] {
   background-color: #263650 !important;
 }
 
+/* The "Updated …" capsule on the Subject Card is the only `bg-white/80` surface
+   in the app. It is not covered by the `.bg-white` rule above, so without this
+   remap it stayed a bright pill sitting on the dark panel. The value is the
+   same dark chip the sibling rank capsule resolves to, kept translucent to
+   preserve the frosted intent of the light-theme token. */
+html[data-theme="dark"] [class~="bg-white/80"] {
+  background-color: rgba(16, 26, 44, 0.9) !important;
+}
+
 html[data-theme="dark"] :is(.text-slate-900, .text-slate-800, .text-slate-700) {
   color: #f1f5f9 !important;
 }
@@ -250,6 +285,92 @@ html[data-theme="dark"] .subject-hero {
 .subject-view-icon {
   background: var(--subject-accent);
   color: #ffffff;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   SUBJECT CARD ACCENT LINE
+   Two stacked layers: a static 5rem pill, and a full-width bar that is hidden
+   until the card is hovered. The hover state is a single `scaleX` + `opacity`
+   interpolation on the overlay (never geometry on the pill), so expanding the
+   line cannot force layout on the dashboard grid. The layer is auto-promoted
+   only while it animates — no permanent `will-change`, so a 40-card grid does
+   not carry 80 idle layers.
+   ───────────────────────────────────────────────────────────────────────── */
+.subject-accent-bar {
+  /* Tailwind's `scale-x-*` utilities drive the independent `scale` property, so
+     `scale` has to be listed alongside `transform` or the expansion snaps.
+
+     DIRECTION MATTERS: a transition uses the `transition-*` of the state it is
+     moving *to*, so this base block is the HOVER-OUT ramp and the `:hover`
+     block below is the hover-in ramp. Both directions need their own timings —
+     sharing one short opacity ramp made the bar fade out in 120ms while the
+     440ms retraction was still running, so leaving a card looked like the line
+     simply vanished instead of sliding back.
+
+     Exit: opacity stays up almost as long as the scale, so the retraction is
+     visible for its whole length, on an ease-in-out that reads as the line
+     pulling back rather than snapping shut. */
+  transition:
+    transform 440ms cubic-bezier(0.65, 0, 0.35, 1),
+    scale 440ms cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 340ms cubic-bezier(0.65, 0, 0.35, 1),
+    box-shadow 440ms ease-out;
+}
+
+/* Hover-in ramp. Opacity is deliberately much shorter than the scale ramp here:
+   the bar is fully opaque while it is still travelling, so what you watch is
+   the line lengthening rather than a fade. Ease-out gives an immediate response
+   that settles gently into full width.
+
+   The accent tint doubles as the glow, so the line reads on the dark background
+   too — a neutral drop shadow disappears against `#07101f`. */
+.group:hover .subject-accent-bar,
+.group:focus-within .subject-accent-bar {
+  transition:
+    transform 440ms cubic-bezier(0.33, 1, 0.68, 1),
+    scale 440ms cubic-bezier(0.33, 1, 0.68, 1),
+    opacity 120ms ease-out,
+    box-shadow 440ms ease-out;
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--subject-accent) 40%, transparent);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   COPY BUTTON
+   Hover separates the two sheets of the copy glyph and lifts the icon by a
+   hair; confirming a copy fires one expanding ring. Every property involved is
+   `transform` or `opacity`, and the ring only exists for the 2s the "Copied!"
+   state is on screen. `currentColor` inherits the emerald success color, so
+   the ring needs no extra theme handling.
+   ───────────────────────────────────────────────────────────────────────── */
+.copy-glyph {
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.copy-sheet {
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.copy-button:hover .copy-glyph {
+  transform: translate3d(0, -1px, 0) scale(1.06);
+}
+
+.copy-button:hover .copy-sheet {
+  transform: translate(1.5px, 1.5px);
+}
+
+.copy-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid currentColor;
+  opacity: 0;
+  pointer-events: none;
+  animation: copy-pulse 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes copy-pulse {
+  from { opacity: 0.5; transform: scale(0.82); }
+  to { opacity: 0; transform: scale(1.32); }
 }
 
 html[data-theme="dark"] .subject-view-button {
@@ -395,8 +516,21 @@ html {
 
 .micro-interact {
   transition-property: transform, translate, scale, rotate, opacity;
-  transition-duration: 200ms;
-  transition-timing-function: ease-out;
+  transition-duration: var(--default-transition-duration);
+  transition-timing-function: var(--default-transition-timing-function);
+}
+
+/* Notification badge: it appears only after the notifications request resolves,
+   so without this it pops into existence. A short back-out scale reads as a
+   soft arrival; transform + opacity only, and the badge is absolutely
+   positioned so it never moves its neighbours. */
+.badge-pop {
+  animation: badge-pop 260ms cubic-bezier(0.34, 1.3, 0.64, 1) both;
+}
+
+@keyframes badge-pop {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .responsive-container {

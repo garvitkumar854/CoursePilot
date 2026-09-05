@@ -212,14 +212,14 @@ export default function Navbar() {
                             aria-label="Notifications"
                             aria-expanded={notificationsOpen}
                             onClick={() => setNotificationsOpen((current) => !current)}
-                            className={`relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border transition-gpu duration-200 hover:-translate-y-0.5 sm:h-10 sm:w-10 ${notificationsOpen
+                            className={`relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border transition-gpu hover:-translate-y-0.5 sm:h-10 sm:w-10 ${notificationsOpen
                                 ? "border-slate-300 bg-slate-900 text-white shadow-md"
                                 : "border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50"
                                 }`}
                         >
                             <BellIcon />
                             {unreadCount > 0 ? (
-                                <span className="absolute -right-1 -top-1 flex min-w-[1.15rem] items-center justify-center rounded-full border-2 border-white bg-rose-500 px-1 text-[0.6rem] font-black leading-4 text-white" aria-label={`${unreadCount} unread notifications`}>
+                                <span className="badge-pop absolute -right-1 -top-1 flex min-w-[1.15rem] items-center justify-center rounded-full border-2 border-white bg-rose-500 px-1 text-[0.6rem] font-black leading-4 text-white" aria-label={`${unreadCount} unread notifications`}>
                                     {unreadCount > 9 ? "9+" : unreadCount}
                                 </span>
                             ) : null}
@@ -327,11 +327,11 @@ export default function Navbar() {
                     </div>
 
                     {isAdmin ? (
-                        <button type="button" onClick={logout} title="Sign out of admin" className="group inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 text-xs font-black text-slate-600 shadow-sm transition-gpu duration-200 hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 sm:h-10 sm:px-4 sm:text-sm">
+                        <button type="button" onClick={logout} title="Sign out of admin" className="group inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 text-xs font-black text-slate-600 shadow-sm transition-gpu hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.97] sm:h-10 sm:px-4 sm:text-sm">
                             <LogoutIcon /><span className="hidden sm:inline">Logout</span>
                         </button>
                     ) : (
-                        <button type="button" onClick={openLogin} className="inline-flex h-9 cursor-pointer items-center rounded-full bg-slate-900 px-3 text-xs font-black tracking-[-0.02em] text-white shadow-md transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 sm:h-10 sm:px-5 sm:text-sm">
+                        <button type="button" onClick={openLogin} className="inline-flex h-9 cursor-pointer items-center rounded-full bg-slate-900 px-3 text-xs font-black tracking-[-0.02em] text-white shadow-md transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:h-10 sm:px-5 sm:text-sm">
                             Admin
                         </button>
                     )}

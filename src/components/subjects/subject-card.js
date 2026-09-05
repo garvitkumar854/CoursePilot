@@ -9,8 +9,11 @@ import { useDismissable } from "@/lib/use-dismissable";
 
 function CopyGlyph() {
     return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 stroke-[1.8]">
-            <rect x="8.5" y="8.5" width="11" height="11" rx="2.5" fill="none" stroke="currentColor" />
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="copy-glyph h-5 w-5 stroke-[1.8]">
+            {/* `.copy-sheet` is the front sheet: on hover it slides away from the
+                back sheet by ~1 user unit, which reads as the two pages
+                separating. Transform-only, so nothing reflows. */}
+            <rect className="copy-sheet" x="8.5" y="8.5" width="11" height="11" rx="2.5" fill="none" stroke="currentColor" />
             <path d="M15.5 8.5v-2A2 2 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7a2 2 0 0 0 2 2h2.5" fill="none" stroke="currentColor" strokeLinecap="round" />
         </svg>
     );
@@ -90,17 +93,23 @@ export default function SubjectCard({ subject, rank }) {
         <>
         {/* `.loop-item` applies content-visibility: auto + intrinsic-size
             containment so offscreen cards cost nothing to keep in the loop. */}
-        <article className="loop-item rounded-card group relative h-full overflow-hidden border border-white/70 bg-(--panel) p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] transition-transform duration-200 ease-out hover:-translate-y-1 sm:p-5">
-            {/* Accent bar: the hover expansion is now a transform scaleX on a
-                full-width layer (opacity + transform only). The static pill
-                underneath never animates geometry, so hovering a card cannot
-                force layout on the dashboard grid. */}
+        <article
+            className="loop-item rounded-card group relative h-full overflow-hidden border border-white/70 bg-(--panel) p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] transition-transform hover:-translate-y-1 sm:p-5"
+            style={{
+                "--subject-accent": subject.accentColor,
+                "--subject-tint": `${subject.accentColor}18`,
+            }}
+        >
+            {/* Accent bar: the hover expansion is a `scaleX` on a full-width
+                layer (opacity + transform only). The static pill underneath
+                never animates geometry, so hovering a card cannot force layout
+                on the dashboard grid. Timing lives in `.subject-accent-bar`. */}
             <div
                 className="absolute left-1/2 top-0 h-1.5 w-20 -translate-x-1/2 rounded-b-full"
                 style={{ backgroundColor: subject.accentColor }}
             />
             <div
-                className="absolute inset-x-0 top-0 h-2 origin-center scale-x-[0.21] rounded-none opacity-0 transition-gpu duration-200 ease-out group-hover:scale-x-100 group-hover:opacity-100 group-hover:shadow-[0_4px_15px_rgba(15,23,42,0.15)]"
+                className="subject-accent-bar absolute inset-x-0 top-0 h-2 origin-center scale-x-[0.21] rounded-none opacity-0 group-hover:scale-x-100 group-hover:opacity-100"
                 style={{ backgroundColor: subject.accentColor }}
             />
 
@@ -191,7 +200,7 @@ export default function SubjectCard({ subject, rank }) {
                     <button
                         type="button"
                         onClick={handleCopy}
-                        className={`relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-control border transition-gpu duration-200 ease-out active:scale-95 ${
+                        className={`copy-button relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-control border transition-gpu hover:-translate-y-0.5 active:scale-[0.97] ${
                             isCopied
                                 ? "border-emerald-300 bg-emerald-50 text-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.22)]"
                                 : "border-slate-200/90 bg-white text-slate-600 shadow-sm hover:border-slate-300 hover:bg-slate-50 hover:text-blue-600"
@@ -199,6 +208,11 @@ export default function SubjectCard({ subject, rank }) {
                         title={isCopied ? "Copied!" : "Copy assignments"}
                         aria-label="Copy assignments"
                     >
+                        {/* One-shot confirmation ring; only mounted while the
+                            "Copied!" state is up, and `currentColor` picks up
+                            the emerald success text color. */}
+                        {isCopied ? <span className="copy-pulse" aria-hidden="true" /> : null}
+
                         {isCopied ? (
                             <span key="check" className="icon-swap">
                                 <CheckGlyph />
@@ -218,18 +232,16 @@ export default function SubjectCard({ subject, rank }) {
                         ) : null}
                     </button>
 
+                    {/* `--subject-accent` / `--subject-tint` are declared once on
+                        the card root and inherited here by `.subject-view-button`. */}
                     <Link
                         href={`/subjects/${subject.slug}`}
                         prefetch
                         aria-label={`Open ${subject.name} assignments`}
-                        className="subject-view-button rounded-control group/link inline-flex h-11 items-center gap-2.5 border px-3 pl-4 text-[0.78rem] font-semibold tracking-[-0.01em] shadow-sm transition-gpu duration-200 ease-out hover:-translate-y-0.5 active:scale-95 sm:text-[0.84rem]"
-                        style={{
-                            "--subject-accent": subject.accentColor,
-                            "--subject-tint": `${subject.accentColor}18`,
-                        }}
+                        className="subject-view-button rounded-control group/link inline-flex h-11 items-center gap-2.5 border px-3 pl-4 text-[0.78rem] font-semibold tracking-[-0.01em] shadow-sm transition-gpu hover:-translate-y-0.5 active:scale-[0.97] sm:text-[0.84rem]"
                     >
                         Open subject
-                        <span className="subject-view-icon flex h-7 w-7 items-center justify-center rounded-full shadow-sm transition-transform duration-200 ease-out group-hover/link:translate-x-0.5">
+                        <span className="subject-view-icon flex h-7 w-7 items-center justify-center rounded-full shadow-sm transition-transform group-hover/link:translate-x-0.5">
                             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3.5 w-3.5 stroke-[2.4]">
                                 <path d="M5 12h14m0 0-5-5m5 5-5 5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>

@@ -92,10 +92,31 @@ const withPWA = withPWAInit({
   },
 });
 
+/**
+ * Dev-only origin allowlist.
+ *
+ * Next 16 answers `403 Unauthorized` to any `/_next/*` request whose `Origin`
+ * header is not listed here (see `blockCrossSiteDEV`). Client chunks are served
+ * as module scripts, which always send `Origin`, so when the dev server is
+ * reached through a proxy on another host every JS chunk 403s: the page renders
+ * and is fully styled, but React never hydrates and no click handler runs.
+ *
+ * The sandboxed preview proxies this server under
+ * `https://{port}-{sandbox}.e2b.app`. Override with a comma-separated
+ * ALLOWED_DEV_ORIGINS for other hosts. Ignored by production builds.
+ */
+const allowedDevOrigins = [
+  "*.e2b.app",
+  ...(process.env.ALLOWED_DEV_ORIGINS
+    ? process.env.ALLOWED_DEV_ORIGINS.split(",").map((origin) => origin.trim())
+    : []),
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactCompiler: true,
   reactStrictMode: true,
+  allowedDevOrigins,
   ...(isVercel ? {} : { output: "standalone" }),
   compress: true,
   poweredByHeader: false,
