@@ -32,7 +32,7 @@ function ChevronGlyph({ open }) {
         <svg
             viewBox="0 0 24 24"
             aria-hidden="true"
-            className={`h-5 w-5 stroke-2 transition-transform duration-200 ease-out ${open ? "rotate-180" : "rotate-0"}`}
+            className={`h-5 w-5 stroke-2 transition-transform ${open ? "rotate-180" : "rotate-0"}`}
         >
             <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -351,7 +351,7 @@ export default function SubjectDetailClient({ subject, slug }) {
                                 prefetch
                                 className="group/back -ml-1 inline-flex items-center gap-1.5 rounded-full px-1 py-1 text-[0.78rem] font-medium text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:text-[0.85rem]"
                             >
-                                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 stroke-[2] transition-transform duration-200 group-hover/back:-translate-x-0.5">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 stroke-[2] transition-transform group-hover/back:-translate-x-0.5">
                                     <path d="M19 12H5m0 0 5-5m-5 5 5 5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                                 Back to Subjects
@@ -374,12 +374,16 @@ export default function SubjectDetailClient({ subject, slug }) {
                                     onClick={handleCopySubject}
                                     aria-label={isCopied ? "Assignment list copied" : "Copy assignment list"}
                                     title={isCopied ? "Copied!" : "Copy all assignments"}
-                                    className={`inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border transition-gpu duration-200 ease-out active:scale-90 ${
+                                    className={`copy-button relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border transition-gpu hover:-translate-y-0.5 active:scale-[0.96] ${
                                         isCopied
                                             ? "border-emerald-300 bg-emerald-50 text-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                                             : "border-slate-200/90 bg-white text-slate-600 shadow-sm hover:bg-slate-50 hover:text-blue-600"
                                     }`}
                                 >
+                                    {isCopied ? (
+                                        <span className="copy-pulse" aria-hidden="true" />
+                                    ) : null}
+
                                     {isCopied ? (
                                         <svg
                                             key="copied"
@@ -396,7 +400,7 @@ export default function SubjectDetailClient({ subject, slug }) {
                                             aria-hidden="true"
                                             className="icon-swap h-4.5 w-4.5 stroke-[1.8]"
                                         >
-                                            <rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" />
+                                            <rect className="copy-sheet" x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" />
                                             <path d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" />
                                         </svg>
                                     )}
@@ -466,7 +470,7 @@ export default function SubjectDetailClient({ subject, slug }) {
                                         type="button"
                                         onClick={saveOrder}
                                         disabled={savingOrder}
-                                        className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(5,150,105,0.24)] transition-transform hover:-translate-y-0.5 active:scale-95 disabled:bg-emerald-300 disabled:shadow-none sm:flex-none sm:px-5"
+                                        className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(5,150,105,0.24)] transition-transform hover:-translate-y-0.5 active:scale-[0.97] disabled:bg-emerald-300 disabled:shadow-none sm:flex-none sm:px-5"
                                     >
                                         {savingOrder ? "Saving..." : "Save order"}
                                     </button>
@@ -477,7 +481,7 @@ export default function SubjectDetailClient({ subject, slug }) {
                                         <button
                                             type="button"
                                             onClick={startReordering}
-                                            className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-slate-900/10 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-gpu hover:-translate-y-0.5 hover:border-slate-900/20 hover:bg-slate-50 active:scale-95 sm:flex-none sm:px-5"
+                                            className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-slate-900/10 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-gpu hover:-translate-y-0.5 hover:border-slate-900/20 hover:bg-slate-50 active:scale-[0.97] sm:flex-none sm:px-5"
                                         >
                                             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
                                                 <g fill="currentColor">
@@ -496,7 +500,7 @@ export default function SubjectDetailClient({ subject, slug }) {
                                     <button
                                         type="button"
                                         onClick={() => openAddAssignment(serverSubject.slug)}
-                                        className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center rounded-full bg-blue-600 px-4 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(37,99,235,0.2)] transition-transform hover:-translate-y-0.5 active:scale-95 sm:flex-none sm:px-5"
+                                        className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center rounded-full bg-blue-600 px-4 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(37,99,235,0.2)] transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:flex-none sm:px-5"
                                     >
                                         Add Assignment
                                     </button>
@@ -504,9 +508,9 @@ export default function SubjectDetailClient({ subject, slug }) {
                                     <button
                                         type="button"
                                         onClick={() => openUploadAssignments(serverSubject.slug)}
-                                        className="group inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-blue-600 bg-transparent px-4 text-sm font-semibold text-blue-600 transition-gpu duration-200 hover:-translate-y-0.5 hover:bg-blue-600 hover:text-white hover:shadow-[0_14px_30px_rgba(37,99,235,0.22)] active:scale-95 sm:w-auto sm:px-5"
+                                        className="group inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-blue-600 bg-transparent px-4 text-sm font-semibold text-blue-600 transition-gpu hover:-translate-y-0.5 hover:bg-blue-600 hover:text-white hover:shadow-[0_14px_30px_rgba(37,99,235,0.22)] active:scale-[0.97] sm:w-auto sm:px-5"
                                     >
-                                        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 stroke-[2.2] transition-transform duration-200 group-hover:-translate-y-0.5">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 stroke-[2.2] transition-transform group-hover:-translate-y-0.5">
                                             <path
                                                 d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"
                                                 fill="none"

@@ -74,7 +74,7 @@ export function InlineCalendar({
         <button
           type="button"
           onClick={() => moveMonth(-1)}
-          className="rounded-control grid size-9 shrink-0 cursor-pointer place-items-center border border-slate-200 bg-white text-lg text-slate-600 transition-gpu duration-200 hover:border-blue-300 hover:text-blue-600 active:scale-95"
+          className="rounded-control grid size-9 shrink-0 cursor-pointer place-items-center border border-slate-200 bg-white text-lg text-slate-600 transition-gpu hover:border-blue-300 hover:text-blue-600 active:scale-[0.97]"
           aria-label="Previous month"
         >
           ‹
@@ -85,7 +85,7 @@ export function InlineCalendar({
         <button
           type="button"
           onClick={() => moveMonth(1)}
-          className="rounded-control grid size-9 shrink-0 cursor-pointer place-items-center border border-slate-200 bg-white text-lg text-slate-600 transition-gpu duration-200 hover:border-blue-300 hover:text-blue-600 active:scale-95"
+          className="rounded-control grid size-9 shrink-0 cursor-pointer place-items-center border border-slate-200 bg-white text-lg text-slate-600 transition-gpu hover:border-blue-300 hover:text-blue-600 active:scale-[0.97]"
           aria-label="Next month"
         >
           ›

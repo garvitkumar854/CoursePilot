@@ -316,7 +316,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
                                     if (!event.currentTarget.contains(event.relatedTarget)) setIsDragging(false);
                                 }}
                                 onDrop={handleDrop}
-                                className={`group grid min-h-52 cursor-pointer place-items-center rounded-card border-2 border-dashed p-5 text-center transition-gpu duration-200 ${isDragging ? "border-blue-500 bg-blue-50 text-blue-600 shadow-[0_0_0_5px_rgba(59,130,246,0.10)]" : "border-slate-300 bg-slate-50/70 text-slate-500 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600"}`}
+                                className={`group grid min-h-52 cursor-pointer place-items-center rounded-card border-2 border-dashed p-5 text-center transition-gpu ${isDragging ? "border-blue-500 bg-blue-50 text-blue-600 shadow-[0_0_0_5px_rgba(59,130,246,0.10)]" : "border-slate-300 bg-slate-50/70 text-slate-500 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600"}`}
                             >
                                 <input
                                     ref={fileInputRef}
@@ -326,7 +326,7 @@ export default function UploadAssignmentsModal({ open, subjectName, subjectSlug,
                                     className="sr-only"
                                 />
                                 <span className="flex flex-col items-center">
-                                    <span className="drop-zone-icon rounded-control grid size-16 place-items-center bg-white shadow-[0_14px_35px_rgba(15,23,42,0.10)] transition-transform duration-200 group-hover:-translate-y-1">
+                                    <span className="drop-zone-icon rounded-control grid size-16 place-items-center bg-white shadow-[0_14px_35px_rgba(15,23,42,0.10)] transition-transform group-hover:-translate-y-1">
                                         <DropZoneIcon />
                                     </span>
                                     <strong className="font-poppins mt-4 text-base font-bold text-slate-800">

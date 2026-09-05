@@ -72,7 +72,7 @@ export default function ThemeToggle() {
             onClick={toggleTheme}
             aria-label="Toggle light and dark theme"
             title="Toggle light and dark theme"
-            className="theme-toggle relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:text-blue-600 active:scale-95 sm:h-10 sm:w-10"
+            className="theme-toggle relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-transform hover:-translate-y-0.5 hover:border-slate-300 hover:text-blue-600 active:scale-[0.97] sm:h-10 sm:w-10"
         >
             {/* Sun/moon crossfade is declared once in globals.css (`.theme-toggle
                 .theme-sun/.theme-moon`) and only animates transform + opacity. */}

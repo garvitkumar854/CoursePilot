@@ -136,7 +136,7 @@ function SubjectModal({ open, subject, onClose, onCreate }) {
                                 key={color}
                                 type="button"
                                 onClick={() => setAccentColor(color)}
-                                className={`h-8 w-8 cursor-pointer rounded-full transition-transform duration-200 ease-out ${accentColor === color ? "scale-110 ring-2 ring-slate-900 ring-offset-2" : "hover:scale-105"}`}
+                                className={`h-8 w-8 cursor-pointer rounded-full transition-transform ${accentColor === color ? "scale-110 ring-2 ring-slate-900 ring-offset-2" : "hover:scale-105"}`}
                                 style={{ backgroundColor: color }}
                                 aria-label={`Select ${color}`}
                                 aria-pressed={accentColor === color}

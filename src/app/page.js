@@ -61,10 +61,13 @@ export default function Home() {
             </div>
 
             {isAdmin ? (
+              // `gpu-enter` fades and lifts the button in. It only exists once
+              // `/api/admin/me` resolves, so without this it pops into place and
+              // drags the subject grid down with it.
               <button
                 type="button"
                 onClick={() => openAddSubject()}
-                className="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-blue-600 px-4 text-[0.82rem] font-semibold tracking-[-0.01em] text-white shadow-[0_12px_26px_rgba(37,99,235,0.2)] transition-transform hover:-translate-y-0.5 active:scale-95 sm:w-auto sm:px-5 sm:text-[0.88rem]"
+                className="gpu-enter inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-blue-600 px-4 text-[0.82rem] font-semibold tracking-[-0.01em] text-white shadow-[0_12px_26px_rgba(37,99,235,0.2)] transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:w-auto sm:px-5 sm:text-[0.88rem]"
               >
                 Add Subject
               </button>
